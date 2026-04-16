@@ -1,0 +1,44 @@
+# Root-level environment files
+.env
+.env.backup
+.env.production
+
+# Laravel app environment files
+src/.env
+src/.env.backup
+src/.env.production
+src/.phpactor.json
+src/.phpunit.result.cache
+src/auth.json
+src/_ide_helper.php
+
+# Dependencies and generated frontend assets
+src/node_modules
+src/vendor
+src/public/build
+src/public/hot
+src/public/storage
+
+# Local framework/runtime artifacts
+src/storage/*.key
+src/storage/pail
+src/.phpunit.cache
+
+# Local database files
+src/database/database.sqlite
+src/database/*.sqlite
+
+# IDE and OS files
+*.log
+.DS_Store
+Thumbs.db
+src/.fleet
+src/.idea
+src/.nova
+src/.vscode
+src/.zed
+.codex
+
+# Homestead
+src/Homestead.json
+src/Homestead.yaml
