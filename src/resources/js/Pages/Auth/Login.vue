@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, Head } from '@inertiajs/vue3'
+import { useForm, Head, Link } from '@inertiajs/vue3'
 
 defineProps({
   status: String,
@@ -25,6 +25,7 @@ const submit = () => {
 
   <div class="login-page">
     <div class="login-card">
+      <Link href="/" class="brand-link">Ticket Manager</Link>
       <h1>ログイン</h1>
 
       <p v-if="status" class="status-message">
@@ -67,6 +68,11 @@ const submit = () => {
           {{ form.processing ? '送信中...' : 'ログイン' }}
         </button>
       </form>
+
+      <p class="auth-switch">
+        アカウントをお持ちでない方は
+        <Link href="/register">会員登録</Link>
+      </p>
     </div>
   </div>
 </template>
@@ -84,8 +90,17 @@ const submit = () => {
   max-width: 420px;
   background: #fff;
   padding: 32px;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.brand-link {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 h1 {
@@ -147,5 +162,17 @@ button:disabled {
 .status-message {
   margin-bottom: 16px;
   color: #2563eb;
+}
+
+.auth-switch {
+  margin: 22px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-switch a {
+  color: #2563eb;
+  font-weight: 700;
 }
 </style>

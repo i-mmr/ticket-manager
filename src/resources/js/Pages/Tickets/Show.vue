@@ -44,6 +44,11 @@ const priorityLabels = {
         </div>
 
         <dl class="ticket-detail-grid">
+          <div v-if="ticket.project" class="detail-card">
+            <dt>プロジェクト</dt>
+            <dd>{{ ticket.project.workspace }} / {{ ticket.project.name }}</dd>
+          </div>
+
           <div class="detail-card">
             <dt>説明</dt>
             <dd>{{ ticket.description || '説明は未登録です。' }}</dd>
@@ -64,6 +69,57 @@ const priorityLabels = {
             <dd>#{{ ticket.id }}</dd>
           </div>
         </dl>
+
+        <section class="ticket-related-section">
+          <article>
+            <h2>コメント</h2>
+            <p v-if="!ticket.comments.length" class="muted">コメントはまだありません。</p>
+            <div v-for="comment in ticket.comments" :key="comment.id" class="related-row">
+              <strong>{{ comment.user || 'Unknown' }}</strong>
+              <p>{{ comment.body }}</p>
+            </div>
+          </article>
+
+          <article>
+            <h2>サブタスク</h2>
+            <p v-if="!ticket.subtasks.length" class="muted">サブタスクはまだありません。</p>
+            <div v-for="subtask in ticket.subtasks" :key="subtask.id" class="related-row">
+              <strong>{{ subtask.is_done ? '完了' : '未完了' }}</strong>
+              <p>{{ subtask.title }}</p>
+            </div>
+          </article>
+
+          <article>
+            <h2>添付ファイル</h2>
+            <p v-if="!ticket.attachments.length" class="muted">添付ファイルはまだありません。</p>
+            <div v-for="attachment in ticket.attachments" :key="attachment.id" class="related-row">
+              <strong>{{ attachment.file_name }}</strong>
+              <p>{{ attachment.mime_type || '形式未登録' }}</p>
+            </div>
+          </article>
+
+          <article>
+            <h2>活動履歴</h2>
+            <p v-if="!ticket.activities.length" class="muted">活動履歴はまだありません。</p>
+            <div v-for="activity in ticket.activities" :key="activity.id" class="related-row">
+              <strong>{{ activity.action }}</strong>
+              <p>{{ activity.description || activity.created_at }}</p>
+            </div>
+          </article>
+
+          <article>
+            <h2>関連チケット</h2>
+            <p v-if="!ticket.related_tickets.length" class="muted">関連チケットはまだありません。</p>
+            <Link
+              v-for="relatedTicket in ticket.related_tickets"
+              :key="relatedTicket.id"
+              :href="`/tickets/${relatedTicket.id}`"
+              class="related-ticket-link"
+            >
+              #{{ relatedTicket.id }} {{ relatedTicket.title }}
+            </Link>
+          </article>
+        </section>
       </section>
     </div>
   </div>
@@ -186,6 +242,52 @@ dd {
   white-space: pre-wrap;
 }
 
+.ticket-related-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.ticket-related-section article {
+  padding: 18px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ticket-related-section h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.related-row {
+  padding: 10px 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.related-row strong {
+  display: block;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.related-row p,
+.muted {
+  margin: 4px 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.related-ticket-link {
+  display: block;
+  padding: 10px 0;
+  border-top: 1px solid #e2e8f0;
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 @media (max-width: 720px) {
   .ticket-show-page {
     padding: 24px 16px;
@@ -210,6 +312,10 @@ dd {
 
   .detail-card:first-child {
     grid-column: auto;
+  }
+
+  .ticket-related-section {
+    grid-template-columns: 1fr;
   }
 }
 </style>
