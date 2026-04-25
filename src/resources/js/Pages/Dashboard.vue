@@ -1,28 +1,69 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import type { TicketPriority, TicketProject, TicketStatus } from '../types'
 
-const props = defineProps({
-  currentUser: {
-    type: Object,
-    required: true,
-  },
-  status: String,
-  workspaces: {
-    type: Array,
-    default: () => [],
-  },
-  tickets: {
-    type: Array,
-    default: () => [],
-  },
+type TicketViewMode = 'card' | 'list'
+
+interface CurrentUser {
+  name: string | null
+  email: string | null
+}
+
+interface WorkspaceUser {
+  id: number
+  name: string
+  email: string
+}
+
+interface Team {
+  id: number
+  name: string
+  users: WorkspaceUser[]
+}
+
+interface Project {
+  id: number
+  name: string
+  status: string
+  tickets_count: number
+}
+
+interface Workspace {
+  id: number
+  name: string
+  teams: Team[]
+  projects: Project[]
+}
+
+interface Ticket {
+  id: number
+  project: TicketProject | null
+  title: string
+  description: string | null
+  status: TicketStatus
+  priority: TicketPriority
+  created_at: string | null
+}
+
+interface DashboardProps {
+  currentUser: CurrentUser
+  status?: string | null
+  workspaces?: Workspace[]
+  tickets?: Ticket[]
+}
+
+const props = withDefaults(defineProps<DashboardProps>(), {
+  status: null,
+  workspaces: () => [],
+  tickets: () => [],
 })
 
 const isMenuOpen = ref(false)
 const isPasswordModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
-const selectedProjectId = ref(null)
-const ticketViewMode = ref('card')
+const selectedProjectId = ref<number | null>(null)
+const ticketViewMode = ref<TicketViewMode>('card')
 const currentPage = ref(1)
 const ticketsPerPage = 50
 
@@ -101,16 +142,16 @@ const currentRangeStart = computed(() => {
 
 const currentRangeEnd = computed(() => Math.min(currentPage.value * ticketsPerPage, visibleTickets.value.length))
 
-const selectProject = (projectId) => {
+const selectProject = (projectId: number) => {
   selectedProjectId.value = projectId
   currentPage.value = 1
 }
 
-const setTicketViewMode = (mode) => {
+const setTicketViewMode = (mode: TicketViewMode) => {
   ticketViewMode.value = mode
 }
 
-const goToPage = (page) => {
+const goToPage = (page: number) => {
   currentPage.value = Math.min(Math.max(page, 1), totalPages.value)
 }
 
@@ -159,13 +200,13 @@ const deleteAccount = () => {
   })
 }
 
-const statusLabels = {
+const statusLabels: Record<TicketStatus, string> = {
   open: '未対応',
   in_progress: '対応中',
   done: '完了',
 }
 
-const priorityLabels = {
+const priorityLabels: Record<TicketPriority, string> = {
   high: '高',
   medium: '中',
   low: '低',

@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { useForm, Head, Link } from '@inertiajs/vue3'
 
-defineProps({
-  status: String,
-})
+defineProps<{
+  status?: string | null
+}>()
 
 const form = useForm({
   email: '',

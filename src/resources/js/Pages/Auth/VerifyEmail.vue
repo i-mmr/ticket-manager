@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
 
-defineProps({
-  status: String,
-})
+defineProps<{
+  status?: string | null
+}>()
 
 const resendForm = useForm({})
 const logoutForm = useForm({})

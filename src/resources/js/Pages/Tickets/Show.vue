@@ -1,20 +1,66 @@
-<script setup>
+<script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3'
+import type { TicketPriority, TicketProject, TicketStatus } from '../../types'
 
-defineProps({
-  ticket: {
-    type: Object,
-    required: true,
-  },
-})
+interface TicketComment {
+  id: number
+  body: string
+  user: string | null
+  created_at: string | null
+}
 
-const statusLabels = {
+interface TicketAttachment {
+  id: number
+  file_name: string
+  mime_type: string | null
+  size_bytes: number | null
+}
+
+interface TicketActivity {
+  id: number
+  action: string
+  description: string | null
+  created_at: string | null
+}
+
+interface TicketSubtask {
+  id: number
+  title: string
+  is_done: boolean
+}
+
+interface RelatedTicket {
+  id: number
+  title: string
+}
+
+interface TicketDetail {
+  id: number
+  project: TicketProject | null
+  title: string
+  description: string | null
+  status: TicketStatus
+  priority: TicketPriority
+  comments: TicketComment[]
+  attachments: TicketAttachment[]
+  activities: TicketActivity[]
+  subtasks: TicketSubtask[]
+  related_tickets: RelatedTicket[]
+  created_at: string | null
+  updated_at: string | null
+}
+
+defineProps<{
+  ticket: TicketDetail
+}>()
+
+const statusLabels: Record<TicketStatus, string> = {
   open: '未対応',
   in_progress: '対応中',
   done: '完了',
 }
 
-const priorityLabels = {
+const priorityLabels: Record<TicketPriority, string> = {
   high: '高',
   medium: '中',
   low: '低',

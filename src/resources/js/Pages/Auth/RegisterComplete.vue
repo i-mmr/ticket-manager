@@ -1,12 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
 
-const props = defineProps({
-  pendingRegistration: {
-    type: Object,
-    required: true,
-  },
-})
+interface PendingRegistration {
+  id: number
+  email: string
+  token: string
+}
+
+const props = defineProps<{
+  pendingRegistration: PendingRegistration
+}>()
 
 const form = useForm({
   token: props.pendingRegistration.token,
