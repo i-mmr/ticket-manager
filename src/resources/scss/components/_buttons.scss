@@ -1,0 +1,45 @@
+@use '../abstracts/variables' as v;
+@use '../abstracts/mixins' as m;
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  @include m.button-base;
+
+  min-width: 112px;
+  font-size: 14px;
+}
+
+.primary-button {
+  background: v.$color-primary;
+  color: #fff;
+}
+
+.secondary-button {
+  background: v.$color-subtle;
+  color: v.$color-text-strong;
+}
+
+.danger-button {
+  background: v.$color-danger;
+  color: #fff;
+}
+
+.primary-link,
+.secondary-link {
+  @include m.button-base(44px, 16px);
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.primary-link {
+  background: v.$color-primary;
+  color: #fff;
+}
+
+.secondary-link {
+  border: 1px solid v.$color-border-soft;
+  background: v.$color-surface;
+  color: v.$color-text-strong;
+}

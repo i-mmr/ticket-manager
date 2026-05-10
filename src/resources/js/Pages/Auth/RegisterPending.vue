@@ -10,8 +10,8 @@ defineProps<{
 <template>
   <Head title="メールを確認" />
 
-  <div class="pending-page">
-    <div class="pending-card">
+  <div class="auth-page">
+    <div class="auth-card auth-card--lg">
       <Link href="/" class="brand-link">Ticket Manager</Link>
       <p class="eyebrow">Check your email</p>
       <h1>会員登録用のURLを送信しました</h1>
@@ -32,89 +32,142 @@ defineProps<{
   </div>
 </template>
 
-<style scoped>
-.pending-page {
+<style scoped lang="scss">
+@use '../../../scss/abstracts/variables' as v;
+@use '../../../scss/abstracts/mixins' as m;
+
+.auth-page {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 28px 16px;
-  background: #f5f7fb;
-  color: #172554;
+  background: v.$color-page;
+  color: v.$color-text;
 }
 
-.pending-card {
+.auth-card {
   width: 100%;
-  max-width: 560px;
+  max-width: 460px;
   box-sizing: border-box;
-  background: #fff;
-  padding: 34px;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  border-radius: v.$radius-md;
+  background: v.$color-surface;
+  box-shadow: v.$shadow-card;
+
+  &--sm {
+    max-width: 420px;
+  }
+
+  &--md {
+    max-width: 520px;
+    padding: 34px;
+  }
+
+  &--lg {
+    max-width: 560px;
+    padding: 34px;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: 28px;
+  }
+
+  .eyebrow {
+    @include m.eyebrow;
+  }
+
+  .lead {
+    margin: 0 0 22px;
+    color: v.$color-muted;
+    line-height: 1.7;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label:not(.remember-row) {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  input:not([type='checkbox']) {
+    @include m.field-control;
+  }
+
+  button {
+    width: 100%;
+    border: 0;
+    border-radius: v.$radius-md;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: v.$color-primary;
+    color: #fff;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .secondary-button {
+    background: v.$color-subtle;
+    color: v.$color-text-strong;
+  }
+
+  .status-message {
+    margin: 0 0 18px;
+    padding: 12px;
+    border-radius: v.$radius-md;
+    background: v.$color-info-bg;
+    color: v.$color-primary-dark;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .actions {
+    display: grid;
+    gap: 12px;
+  }
 }
 
-.brand-link {
-  display: inline-block;
-  margin-bottom: 18px;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 800;
-  text-decoration: none;
+.auth-card--sm h1 {
+  margin-bottom: 24px;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
+.auth-card--md,
+.auth-card--lg {
+  h1 {
+    margin-bottom: 12px;
+    font-size: 30px;
+  }
+
+  .lead {
+    line-height: 1.8;
+  }
 }
 
-h1 {
-  margin: 0 0 12px;
-  font-size: 30px;
-}
-
-.lead {
-  margin: 0 0 22px;
-  color: #64748b;
-  line-height: 1.8;
-}
-
-.status-message {
-  margin: 0 0 20px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.actions {
-  display: grid;
-  gap: 12px;
-}
-
-.primary-link,
-.secondary-link {
-  display: inline-flex;
-  justify-content: center;
+.remember-row {
+  display: flex;
   align-items: center;
-  min-height: 44px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  text-decoration: none;
+  gap: 8px;
+  margin: 16px 0 20px;
+  font-weight: 400;
 }
 
-.primary-link {
-  background: #2563eb;
-  color: #fff;
-}
+.auth-switch {
+  margin: 22px 0 0;
+  color: v.$color-muted;
+  font-size: 14px;
+  text-align: center;
 
-.secondary-link {
-  border: 1px solid #cbd5e1;
-  color: #0f172a;
-  background: #fff;
+  a {
+    color: v.$color-primary;
+    font-weight: 700;
+  }
 }
 </style>

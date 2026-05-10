@@ -1,0 +1,51 @@
+@use 'variables' as v;
+
+@mixin link-reset {
+  color: inherit;
+  text-decoration: none;
+}
+
+@mixin button-base($min-height: 42px, $padding-x: 16px) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: $min-height;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: v.$radius-md;
+  padding: 0 $padding-x;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin field-control($padding-y: 10px, $padding-x: 12px) {
+  width: 100%;
+  box-sizing: border-box;
+  padding: $padding-y $padding-x;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-md;
+  background: v.$color-surface;
+  color: v.$color-text-strong;
+  font-size: 14px;
+}
+
+@mixin error-text {
+  margin: 6px 0 0;
+  color: v.$color-danger;
+  font-size: 13px;
+}
+
+@mixin eyebrow($letter-spacing: 0) {
+  margin: 0 0 8px;
+  color: v.$color-primary;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: $letter-spacing;
+  text-transform: uppercase;
+}

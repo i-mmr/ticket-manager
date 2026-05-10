@@ -5,6 +5,13 @@ import type { TicketPriority, TicketProject, TicketStatus } from '../types'
 
 type TicketViewMode = 'card' | 'list'
 
+interface ChartItem {
+  key: string
+  label: string
+  count: number
+  percent: number
+}
+
 interface CurrentUser {
   name: string | null
   email: string | null
@@ -142,6 +149,32 @@ const currentRangeStart = computed(() => {
 
 const currentRangeEnd = computed(() => Math.min(currentPage.value * ticketsPerPage, visibleTickets.value.length))
 
+const buildTicketDistribution = <T extends TicketStatus | TicketPriority>(
+  values: readonly T[],
+  labels: Record<T, string>,
+  field: 'status' | 'priority',
+): ChartItem[] => {
+  const counts = new Map<T, number>(values.map((value) => [value, 0]))
+
+  for (const ticket of visibleTickets.value) {
+    const value = ticket[field] as T
+    counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+
+  const totalCount = visibleTickets.value.length || 1
+
+  return values.map((value) => {
+    const count = counts.get(value) ?? 0
+
+    return {
+      key: value,
+      label: labels[value] ?? value,
+      count,
+      percent: (count / totalCount) * 100,
+    }
+  })
+}
+
 const selectProject = (projectId: number) => {
   selectedProjectId.value = projectId
   currentPage.value = 1
@@ -211,6 +244,12 @@ const priorityLabels: Record<TicketPriority, string> = {
   medium: '中',
   low: '低',
 }
+
+const statusOrder = ['open', 'in_progress', 'done'] as const
+const priorityOrder = ['high', 'medium', 'low'] as const
+
+const statusChartItems = computed(() => buildTicketDistribution(statusOrder, statusLabels, 'status'))
+const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder, priorityLabels, 'priority'))
 </script>
 
 <template>
@@ -259,8 +298,14 @@ const priorityLabels: Record<TicketPriority, string> = {
       </div>
     </header>
 
-    <p v-if="status === 'password-updated'" class="status-banner">
-      パスワードを更新しました。
+    <p v-if="status" class="status-banner">
+      {{
+        status === 'password-updated'
+          ? 'パスワードを更新しました。'
+          : status === 'ticket-deleted'
+            ? 'チケットを削除しました。'
+            : status
+      }}
     </p>
 
     <div class="dashboard-layout">
@@ -326,6 +371,9 @@ const priorityLabels: Record<TicketPriority, string> = {
           </div>
 
           <div class="ticket-toolbar">
+            <Link href="/tickets/create" class="new-ticket-button">
+              新規登録
+            </Link>
             <div class="view-toggle" aria-label="表示形式">
               <button
                 type="button"
@@ -344,6 +392,64 @@ const priorityLabels: Record<TicketPriority, string> = {
             </div>
             <span class="ticket-count">{{ visibleTickets.length }}件</span>
           </div>
+        </div>
+
+        <div v-if="visibleTickets.length" class="ticket-insights" :key="activeProjectId ?? 'all'">
+          <article class="insight-panel">
+            <div class="insight-header">
+              <h3>対応状況別</h3>
+              <span>{{ visibleTickets.length }}件</span>
+            </div>
+            <div class="stacked-chart" aria-label="対応状況ごとのチケット件数">
+              <div class="stacked-track">
+                <div class="stacked-fill">
+                  <span
+                    v-for="item in statusChartItems"
+                    :key="item.key"
+                    class="stacked-segment"
+                    :class="`is-${item.key}`"
+                    :style="{ width: `${item.percent}%` }"
+                    :title="`${item.label}: ${item.count}件`"
+                  ></span>
+                </div>
+              </div>
+              <div class="chart-legend">
+                <div v-for="item in statusChartItems" :key="item.key" class="legend-item">
+                  <span class="legend-dot" :class="`is-${item.key}`"></span>
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.count }}件</strong>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="insight-panel">
+            <div class="insight-header">
+              <h3>優先度別</h3>
+              <span>{{ visibleTickets.length }}件</span>
+            </div>
+            <div class="stacked-chart" aria-label="優先度ごとのチケット件数">
+              <div class="stacked-track">
+                <div class="stacked-fill">
+                  <span
+                    v-for="item in priorityChartItems"
+                    :key="item.key"
+                    class="stacked-segment"
+                    :class="`is-${item.key}`"
+                    :style="{ width: `${item.percent}%` }"
+                    :title="`${item.label}: ${item.count}件`"
+                  ></span>
+                </div>
+              </div>
+              <div class="chart-legend">
+                <div v-for="item in priorityChartItems" :key="item.key" class="legend-item">
+                  <span class="legend-dot" :class="`is-${item.key}`"></span>
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.count }}件</strong>
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
 
         <div v-if="visibleTickets.length" class="ticket-list" :class="`is-${ticketViewMode}`">
@@ -502,7 +608,10 @@ const priorityLabels: Record<TicketPriority, string> = {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../../scss/abstracts/variables' as v;
+@use '../../scss/abstracts/mixins' as m;
+
 .dashboard-page {
   min-height: 100vh;
   padding: 40px 24px;
@@ -512,7 +621,7 @@ const priorityLabels: Record<TicketPriority, string> = {
   color: #172554;
 }
 
-.page-header {
+.dashboard-page .page-header {
   position: relative;
   max-width: 1040px;
   margin: 0 auto 24px;
@@ -522,7 +631,7 @@ const priorityLabels: Record<TicketPriority, string> = {
   gap: 16px;
 }
 
-.eyebrow {
+.dashboard-page .eyebrow {
   margin: 0 0 8px;
   font-size: 12px;
   font-weight: 700;
@@ -531,29 +640,29 @@ const priorityLabels: Record<TicketPriority, string> = {
   color: #2563eb;
 }
 
-h1 {
+.dashboard-page h1 {
   margin: 0;
   font-size: clamp(32px, 5vw, 48px);
 }
 
-.description {
+.dashboard-page .description {
   margin: 12px 0 0;
   color: #475569;
 }
 
-.account-shell {
+.dashboard-page .account-shell {
   position: relative;
   z-index: 3;
 }
 
-.account-trigger {
+.dashboard-page .account-trigger {
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
 }
 
-.account-avatar {
+.dashboard-page .account-avatar {
   display: grid;
   place-items: center;
   width: 42px;
@@ -565,13 +674,13 @@ h1 {
   font-weight: 800;
 }
 
-.account-avatar.large {
+.dashboard-page .account-avatar.large {
   width: 52px;
   height: 52px;
   font-size: 16px;
 }
 
-.account-menu {
+.dashboard-page .account-menu {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
@@ -584,7 +693,7 @@ h1 {
   backdrop-filter: blur(12px);
 }
 
-.account-summary {
+.dashboard-page .account-summary {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -592,19 +701,19 @@ h1 {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.account-name {
+.dashboard-page .account-name {
   margin: 0;
   font-size: 16px;
   font-weight: 800;
 }
 
-.account-email {
+.dashboard-page .account-email {
   margin: 6px 0 0;
   color: #64748b;
   font-size: 13px;
 }
 
-.menu-item {
+.dashboard-page .menu-item {
   width: 100%;
   min-height: 42px;
   margin-top: 10px;
@@ -619,22 +728,22 @@ h1 {
   cursor: pointer;
 }
 
-.menu-item.danger {
+.dashboard-page .menu-item.danger {
   color: #b91c1c;
   border-color: #fecaca;
   background: #fff5f5;
 }
 
-.menu-item.subtle {
+.dashboard-page .menu-item.subtle {
   color: #475569;
 }
 
-.menu-item:disabled {
+.dashboard-page .menu-item:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.status-banner {
+.dashboard-page .status-banner {
   max-width: 1040px;
   margin: 0 auto 18px;
   padding: 12px 14px;
@@ -645,7 +754,7 @@ h1 {
   font-weight: 700;
 }
 
-.dashboard-layout {
+.dashboard-page .dashboard-layout {
   max-width: 1180px;
   margin: 0 auto;
   display: grid;
@@ -654,7 +763,7 @@ h1 {
   align-items: start;
 }
 
-.left-pane {
+.dashboard-page .left-pane {
   position: sticky;
   top: 24px;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -664,22 +773,22 @@ h1 {
   box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
 }
 
-.workspace-list {
+.dashboard-page .workspace-list {
   display: grid;
   gap: 16px;
 }
 
-.workspace-group {
+.dashboard-page .workspace-group {
   padding-top: 2px;
 }
 
-.workspace-row {
+.dashboard-page .workspace-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.workspace-icon {
+.dashboard-page .workspace-icon {
   display: grid;
   place-items: center;
   width: 36px;
@@ -691,30 +800,30 @@ h1 {
   font-weight: 900;
 }
 
-.workspace-row h3 {
+.dashboard-page .workspace-row h3 {
   margin: 0;
   font-size: 16px;
 }
 
-.workspace-row p,
-.tree-item p {
+.dashboard-page .workspace-row p,
+.dashboard-page .tree-item p {
   margin: 4px 0 0;
   color: #64748b;
   font-size: 12px;
 }
 
-.tree-block {
+.dashboard-page .tree-block {
   margin-top: 16px;
 }
 
-.tree-label {
+.dashboard-page .tree-label {
   margin: 0 0 8px;
   color: #475569;
   font-size: 12px;
   font-weight: 800;
 }
 
-.tree-item {
+.dashboard-page .tree-item {
   display: grid;
   grid-template-columns: 14px 1fr;
   gap: 8px;
@@ -727,22 +836,22 @@ h1 {
   text-align: left;
 }
 
-.project-item {
+.dashboard-page .project-item {
   border-radius: 8px;
   cursor: pointer;
 }
 
-.project-item:hover,
-.project-item.active {
+.dashboard-page .project-item:hover,
+.dashboard-page .project-item.active {
   border-left-color: #2563eb;
   background: #eff6ff;
 }
 
-.tree-item strong {
+.dashboard-page .tree-item strong {
   font-size: 14px;
 }
 
-.user-list {
+.dashboard-page .user-list {
   display: grid;
   gap: 4px;
   margin: 8px 0 0;
@@ -750,7 +859,7 @@ h1 {
   list-style: none;
 }
 
-.user-list li {
+.dashboard-page .user-list li {
   overflow: hidden;
   color: #334155;
   font-size: 12px;
@@ -759,28 +868,28 @@ h1 {
   white-space: nowrap;
 }
 
-.tree-dot {
+.dashboard-page .tree-dot {
   width: 9px;
   height: 9px;
   margin-top: 5px;
   border-radius: 999px;
 }
 
-.team-dot {
+.dashboard-page .team-dot {
   background: #14b8a6;
 }
 
-.project-dot {
+.dashboard-page .project-dot {
   background: #2563eb;
 }
 
-.pane-empty {
+.dashboard-page .pane-empty {
   padding: 20px 0 4px;
   color: #64748b;
   font-size: 14px;
 }
 
-.ticket-section {
+.dashboard-page .ticket-section {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
@@ -788,7 +897,7 @@ h1 {
   backdrop-filter: blur(10px);
 }
 
-.section-header {
+.dashboard-page .section-header {
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -796,24 +905,38 @@ h1 {
   margin-bottom: 20px;
 }
 
-.section-header h2 {
+.dashboard-page .section-header h2 {
   margin: 0;
   font-size: 22px;
 }
 
-.section-subtitle {
+.dashboard-page .section-subtitle {
   margin: 6px 0 0;
   color: #64748b;
   font-size: 13px;
 }
 
-.ticket-toolbar {
+.dashboard-page .ticket-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.view-toggle {
+.dashboard-page .new-ticket-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.dashboard-page .view-toggle {
   display: inline-flex;
   min-height: 38px;
   padding: 3px;
@@ -822,7 +945,7 @@ h1 {
   background: #fff;
 }
 
-.view-toggle button {
+.dashboard-page .view-toggle button {
   border: 0;
   border-radius: 6px;
   padding: 0 12px;
@@ -833,12 +956,12 @@ h1 {
   cursor: pointer;
 }
 
-.view-toggle button.active {
+.dashboard-page .view-toggle button.active {
   background: #2563eb;
   color: #fff;
 }
 
-.ticket-count {
+.dashboard-page .ticket-count {
   border-radius: 999px;
   padding: 8px 12px;
   background: #dbeafe;
@@ -847,17 +970,139 @@ h1 {
   font-weight: 700;
 }
 
-.ticket-list {
+.dashboard-page .ticket-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dashboard-page .insight-panel {
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.dashboard-page .insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dashboard-page .insight-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.dashboard-page .insight-header span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dashboard-page .stacked-chart {
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-page .stacked-track {
+  overflow: hidden;
+  height: 18px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.dashboard-page .stacked-fill {
+  display: flex;
+  height: 100%;
+  transform-origin: left center;
+  animation: grow-bar 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dashboard-page .stacked-segment {
+  min-width: 0;
+  height: 100%;
+}
+
+.dashboard-page .chart-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dashboard-page .legend-item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dashboard-page .legend-item strong {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #0f172a;
+}
+
+.dashboard-page .legend-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+.dashboard-page .stacked-segment.is-open,
+.dashboard-page .legend-dot.is-open {
+  background: #3b82f6;
+}
+
+.dashboard-page .stacked-segment.is-in_progress,
+.dashboard-page .legend-dot.is-in_progress {
+  background: #14b8a6;
+}
+
+.dashboard-page .stacked-segment.is-done,
+.dashboard-page .legend-dot.is-done {
+  background: #64748b;
+}
+
+.dashboard-page .stacked-segment.is-high,
+.dashboard-page .legend-dot.is-high {
+  background: #ef4444;
+}
+
+.dashboard-page .stacked-segment.is-medium,
+.dashboard-page .legend-dot.is-medium {
+  background: #f59e0b;
+}
+
+.dashboard-page .stacked-segment.is-low,
+.dashboard-page .legend-dot.is-low {
+  background: #22c55e;
+}
+
+.dashboard-page .ticket-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
-.ticket-list.is-list {
+.dashboard-page .ticket-list.is-list {
   grid-template-columns: 1fr;
 }
 
-.ticket-card {
+.dashboard-page .ticket-card {
   display: block;
   padding: 20px;
   border-radius: 8px;
@@ -872,7 +1117,7 @@ h1 {
     border-color 0.18s ease;
 }
 
-.ticket-list.is-list .ticket-card {
+.dashboard-page .ticket-list.is-list .ticket-card {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr) 140px;
   gap: 16px;
@@ -880,27 +1125,27 @@ h1 {
   padding: 16px 18px;
 }
 
-.ticket-list.is-list .ticket-meta {
+.dashboard-page .ticket-list.is-list .ticket-meta {
   margin-bottom: 0;
   justify-content: start;
 }
 
-.ticket-list.is-list .ticket-card h3 {
+.dashboard-page .ticket-list.is-list .ticket-card h3 {
   margin-bottom: 4px;
 }
 
-.ticket-list.is-list .created-at {
+.dashboard-page .ticket-list.is-list .created-at {
   margin-top: 0;
   text-align: right;
 }
 
-.ticket-card:hover {
+.dashboard-page .ticket-card:hover {
   transform: translateY(-4px);
   border-color: #93c5fd;
   box-shadow: 0 18px 36px rgba(37, 99, 235, 0.14);
 }
 
-.ticket-meta {
+.dashboard-page .ticket-meta {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -909,32 +1154,32 @@ h1 {
   font-weight: 700;
 }
 
-.status {
+.dashboard-page .status {
   color: #2563eb;
 }
 
-.priority {
+.dashboard-page .priority {
   color: #475569;
 }
 
-.ticket-card h3 {
+.dashboard-page .ticket-card h3 {
   margin: 0 0 12px;
   font-size: 20px;
 }
 
-.ticket-description,
-.created-at {
+.dashboard-page .ticket-description,
+.dashboard-page .created-at {
   margin: 0;
   color: #475569;
   line-height: 1.6;
 }
 
-.created-at {
+.dashboard-page .created-at {
   margin-top: 14px;
   font-size: 13px;
 }
 
-.empty-state {
+.dashboard-page .empty-state {
   padding: 40px 20px;
   text-align: center;
   border-radius: 8px;
@@ -942,7 +1187,7 @@ h1 {
   color: #64748b;
 }
 
-.pagination {
+.dashboard-page .pagination {
   display: flex;
   justify-content: end;
   align-items: center;
@@ -950,7 +1195,7 @@ h1 {
   margin-top: 20px;
 }
 
-.pagination button {
+.dashboard-page .pagination button {
   min-width: 76px;
   min-height: 38px;
   border: 1px solid #cbd5e1;
@@ -962,38 +1207,54 @@ h1 {
   cursor: pointer;
 }
 
-.pagination button:disabled {
+.dashboard-page .pagination button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.pagination span {
+.dashboard-page .pagination span {
   color: #475569;
   font-size: 13px;
   font-weight: 800;
 }
 
-.scrim,
-.modal-layer {
+@keyframes grow-bar {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+.dashboard-page .stacked-fill {
+    animation: none;
+  }
+}
+
+.dashboard-page .scrim,
+.dashboard-page .modal-layer {
   position: fixed;
   inset: 0;
 }
 
-.scrim {
+.dashboard-page .scrim {
   z-index: 2;
 }
 
-.modal-layer {
+.dashboard-page .modal-layer {
   z-index: 20;
 }
 
-.modal-backdrop {
+.dashboard-page .modal-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.4);
 }
 
-.modal-panel {
+.dashboard-page .modal-panel {
   position: relative;
   width: min(520px, calc(100vw - 32px));
   margin: 80px auto 0;
@@ -1003,7 +1264,7 @@ h1 {
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
 }
 
-.modal-header {
+.dashboard-page .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -1011,7 +1272,7 @@ h1 {
   margin-bottom: 18px;
 }
 
-.modal-eyebrow {
+.dashboard-page .modal-eyebrow {
   margin: 0 0 6px;
   color: #2563eb;
   font-size: 12px;
@@ -1019,16 +1280,16 @@ h1 {
   text-transform: uppercase;
 }
 
-.danger-text {
+.dashboard-page .danger-text {
   color: #dc2626;
 }
 
-.modal-header h2 {
+.dashboard-page .modal-header h2 {
   margin: 0;
   font-size: 24px;
 }
 
-.icon-button {
+.dashboard-page .icon-button {
   width: 36px;
   height: 36px;
   border: 1px solid #cbd5e1;
@@ -1040,20 +1301,20 @@ h1 {
   cursor: pointer;
 }
 
-.modal-form {
+.dashboard-page .modal-form {
   display: grid;
   gap: 16px;
 }
 
-.form-group label {
+.dashboard-page .form-group label {
   display: block;
   margin-bottom: 6px;
   font-weight: 700;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.dashboard-page .form-group input,
+.dashboard-page .form-group select,
+.dashboard-page .form-group textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 10px 12px;
@@ -1062,32 +1323,32 @@ h1 {
   font-size: 14px;
 }
 
-.form-group textarea {
+.dashboard-page .form-group textarea {
   resize: vertical;
 }
 
-.error {
+.dashboard-page .error {
   margin: 6px 0 0;
   color: #dc2626;
   font-size: 13px;
 }
 
-.danger-note {
+.dashboard-page .danger-note {
   margin: 0;
   color: #b91c1c;
   font-size: 14px;
   line-height: 1.7;
 }
 
-.modal-actions {
+.dashboard-page .modal-actions {
   display: flex;
   justify-content: end;
   gap: 12px;
 }
 
-.primary-button,
-.secondary-button,
-.danger-button {
+.dashboard-page .primary-button,
+.dashboard-page .secondary-button,
+.dashboard-page .danger-button {
   min-width: 112px;
   min-height: 42px;
   box-sizing: border-box;
@@ -1099,75 +1360,83 @@ h1 {
   cursor: pointer;
 }
 
-.primary-button {
+.dashboard-page .primary-button {
   background: #2563eb;
   color: #fff;
 }
 
-.secondary-button {
+.dashboard-page .secondary-button {
   background: #e2e8f0;
   color: #0f172a;
 }
 
-.danger-button {
+.dashboard-page .danger-button {
   background: #dc2626;
   color: #fff;
 }
 
-.primary-button:disabled,
-.secondary-button:disabled,
-.danger-button:disabled {
+.dashboard-page .primary-button:disabled,
+.dashboard-page .secondary-button:disabled,
+.dashboard-page .danger-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 @media (max-width: 720px) {
-  .dashboard-page {
+.dashboard-page {
     padding: 24px 16px;
   }
 
-  .page-header {
+.dashboard-page .page-header {
     align-items: start;
   }
 
-  .description {
+.dashboard-page .description {
     max-width: 240px;
   }
 
-  .section-header,
-  .ticket-toolbar {
+  .dashboard-page .section-header,
+.dashboard-page .ticket-toolbar {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .dashboard-layout {
+.dashboard-page .ticket-insights {
     grid-template-columns: 1fr;
   }
 
-  .left-pane {
+.dashboard-page .chart-legend {
+    grid-template-columns: 1fr;
+  }
+
+.dashboard-page .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+.dashboard-page .left-pane {
     position: static;
   }
 
-  .modal-panel {
+.dashboard-page .modal-panel {
     margin-top: 36px;
     padding: 20px;
   }
 
-  .ticket-list.is-list .ticket-card {
+.dashboard-page .ticket-list.is-list .ticket-card {
     grid-template-columns: 1fr;
   }
 
-  .ticket-list.is-list .created-at {
+.dashboard-page .ticket-list.is-list .created-at {
     text-align: left;
   }
 
-  .modal-actions {
+.dashboard-page .modal-actions {
     flex-direction: column;
   }
 
-  .primary-button,
-  .secondary-button,
-  .danger-button {
+  .dashboard-page .primary-button,
+  .dashboard-page .secondary-button,
+.dashboard-page .danger-button {
     width: 100%;
   }
 }

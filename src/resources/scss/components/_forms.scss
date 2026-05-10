@@ -1,0 +1,5 @@
+@use '../abstracts/mixins' as m;
+
+.error {
+  @include m.error-text;
+}

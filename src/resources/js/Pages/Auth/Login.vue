@@ -23,8 +23,8 @@ const submit = () => {
 <template>
   <Head title="ログイン" />
 
-  <div class="login-page">
-    <div class="login-card">
+  <div class="auth-page">
+    <div class="auth-card auth-card--sm">
       <Link href="/" class="brand-link">Ticket Manager</Link>
       <h1>ログイン</h1>
 
@@ -77,55 +77,123 @@ const submit = () => {
   </div>
 </template>
 
-<style scoped>
-.login-page {
+<style scoped lang="scss">
+@use '../../../scss/abstracts/variables' as v;
+@use '../../../scss/abstracts/mixins' as m;
+
+.auth-page {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: #f5f7fb;
+  padding: 28px 16px;
+  background: v.$color-page;
+  color: v.$color-text;
 }
 
-.login-card {
+.auth-card {
   width: 100%;
-  max-width: 420px;
-  background: #fff;
-  padding: 32px;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-}
-
-.brand-link {
-  display: inline-block;
-  margin-bottom: 18px;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-h1 {
-  margin: 0 0 24px;
-  font-size: 28px;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-
-input[type="email"],
-input[type="password"] {
-  width: 100%;
+  max-width: 460px;
   box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #cfd6e4;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 32px;
+  border-radius: v.$radius-md;
+  background: v.$color-surface;
+  box-shadow: v.$shadow-card;
+
+  &--sm {
+    max-width: 420px;
+  }
+
+  &--md {
+    max-width: 520px;
+    padding: 34px;
+  }
+
+  &--lg {
+    max-width: 560px;
+    padding: 34px;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: 28px;
+  }
+
+  .eyebrow {
+    @include m.eyebrow;
+  }
+
+  .lead {
+    margin: 0 0 22px;
+    color: v.$color-muted;
+    line-height: 1.7;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label:not(.remember-row) {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  input:not([type='checkbox']) {
+    @include m.field-control;
+  }
+
+  button {
+    width: 100%;
+    border: 0;
+    border-radius: v.$radius-md;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: v.$color-primary;
+    color: #fff;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .secondary-button {
+    background: v.$color-subtle;
+    color: v.$color-text-strong;
+  }
+
+  .status-message {
+    margin: 0 0 18px;
+    padding: 12px;
+    border-radius: v.$radius-md;
+    background: v.$color-info-bg;
+    color: v.$color-primary-dark;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .actions {
+    display: grid;
+    gap: 12px;
+  }
+}
+
+.auth-card--sm h1 {
+  margin-bottom: 24px;
+}
+
+.auth-card--md,
+.auth-card--lg {
+  h1 {
+    margin-bottom: 12px;
+    font-size: 30px;
+  }
+
+  .lead {
+    line-height: 1.8;
+  }
 }
 
 .remember-row {
@@ -136,43 +204,15 @@ input[type="password"] {
   font-weight: 400;
 }
 
-button {
-  width: 100%;
-  border: 0;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  background: #2563eb;
-  color: white;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error {
-  margin-top: 6px;
-  color: #dc2626;
-  font-size: 13px;
-}
-
-.status-message {
-  margin-bottom: 16px;
-  color: #2563eb;
-}
-
 .auth-switch {
   margin: 22px 0 0;
-  color: #64748b;
+  color: v.$color-muted;
   font-size: 14px;
   text-align: center;
-}
 
-.auth-switch a {
-  color: #2563eb;
-  font-weight: 700;
+  a {
+    color: v.$color-primary;
+    font-weight: 700;
+  }
 }
 </style>

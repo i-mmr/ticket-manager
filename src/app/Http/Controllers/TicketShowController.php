@@ -20,6 +20,7 @@ class TicketShowController extends Controller
         ]);
 
         return Inertia::render('Tickets/Show', [
+            'status' => session('status'),
             'ticket' => [
                 'id' => $ticket->id,
                 'project' => $ticket->project ? [

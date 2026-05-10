@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import type { TicketPriority, TicketProject, TicketStatus } from '../../types'
 
 interface TicketComment {
@@ -50,9 +50,20 @@ interface TicketDetail {
   updated_at: string | null
 }
 
-defineProps<{
+const props = defineProps<{
+  status?: string | null
   ticket: TicketDetail
 }>()
+
+const deleteForm = useForm({})
+
+const deleteTicket = () => {
+  if (!window.confirm('このチケットを削除しますか？')) {
+    return
+  }
+
+  deleteForm.delete(`/tickets/${props.ticket.id}`)
+}
 
 const statusLabels: Record<TicketStatus, string> = {
   open: '未対応',
@@ -72,9 +83,26 @@ const priorityLabels: Record<TicketPriority, string> = {
 
   <div class="ticket-show-page">
     <div class="ticket-show-shell">
-      <Link href="/dashboard" class="back-link">
-        一覧へ戻る
-      </Link>
+      <div class="top-actions">
+        <Link href="/dashboard" class="back-link">
+          一覧へ戻る
+        </Link>
+        <div class="ticket-actions">
+          <Link :href="`/tickets/${ticket.id}/edit`" class="edit-link">
+            修正
+          </Link>
+          <button type="button" class="delete-button" :disabled="deleteForm.processing" @click="deleteTicket">
+            {{ deleteForm.processing ? '削除中...' : '削除' }}
+          </button>
+        </div>
+      </div>
+
+      <p v-if="status === 'ticket-created'" class="status-banner">
+        チケットを登録しました。
+      </p>
+      <p v-if="status === 'ticket-updated'" class="status-banner">
+        チケットを更新しました。
+      </p>
 
       <section class="ticket-panel">
         <div class="ticket-header">
@@ -171,7 +199,10 @@ const priorityLabels: Record<TicketPriority, string> = {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../../../scss/abstracts/variables' as v;
+@use '../../../scss/abstracts/mixins' as m;
+
 .ticket-show-page {
   min-height: 100vh;
   padding: 40px 24px;
@@ -181,21 +212,76 @@ const priorityLabels: Record<TicketPriority, string> = {
   color: #172554;
 }
 
-.ticket-show-shell {
+.ticket-show-page .ticket-show-shell {
   max-width: 960px;
   margin: 0 auto;
 }
 
-.back-link {
+.ticket-show-page .top-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.ticket-show-page .back-link {
   display: inline-flex;
   align-items: center;
-  margin-bottom: 18px;
   color: #1d4ed8;
   font-weight: 700;
   text-decoration: none;
 }
 
-.ticket-panel {
+.ticket-show-page .ticket-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ticket-show-page .edit-link,
+.ticket-show-page .delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  min-height: 38px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ticket-show-page .edit-link {
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+}
+
+.ticket-show-page .delete-button {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #b91c1c;
+}
+
+.ticket-show-page .delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ticket-show-page .status-banner {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ticket-show-page .ticket-panel {
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 28px;
@@ -204,7 +290,7 @@ const priorityLabels: Record<TicketPriority, string> = {
   backdrop-filter: blur(12px);
 }
 
-.ticket-header {
+.ticket-show-page .ticket-header {
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -212,7 +298,7 @@ const priorityLabels: Record<TicketPriority, string> = {
   margin-bottom: 24px;
 }
 
-.eyebrow {
+.ticket-show-page .eyebrow {
   margin: 0 0 8px;
   font-size: 12px;
   font-weight: 700;
@@ -221,20 +307,20 @@ const priorityLabels: Record<TicketPriority, string> = {
   color: #2563eb;
 }
 
-h1 {
+.ticket-show-page h1 {
   margin: 0;
   font-size: clamp(30px, 5vw, 44px);
 }
 
-.ticket-badges {
+.ticket-show-page .ticket-badges {
   display: flex;
   flex-wrap: wrap;
   justify-content: end;
   gap: 10px;
 }
 
-.status,
-.priority {
+.ticket-show-page .status,
+.ticket-show-page .priority {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
@@ -243,24 +329,24 @@ h1 {
   font-weight: 700;
 }
 
-.status {
+.ticket-show-page .status {
   background: #dbeafe;
   color: #1d4ed8;
 }
 
-.priority {
+.ticket-show-page .priority {
   background: #e2e8f0;
   color: #334155;
 }
 
-.ticket-detail-grid {
+.ticket-show-page .ticket-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin: 0;
 }
 
-.detail-card {
+.ticket-show-page .detail-card {
   margin: 0;
   padding: 20px;
   border-radius: 20px;
@@ -268,11 +354,11 @@ h1 {
   border: 1px solid #dbeafe;
 }
 
-.detail-card:first-child {
+.ticket-show-page .detail-card:first-child {
   grid-column: 1 / -1;
 }
 
-dt {
+.ticket-show-page dt {
   margin: 0 0 10px;
   font-size: 12px;
   font-weight: 700;
@@ -281,51 +367,51 @@ dt {
   color: #64748b;
 }
 
-dd {
+.ticket-show-page dd {
   margin: 0;
   color: #334155;
   line-height: 1.7;
   white-space: pre-wrap;
 }
 
-.ticket-related-section {
+.ticket-show-page .ticket-related-section {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 20px;
 }
 
-.ticket-related-section article {
+.ticket-show-page .ticket-related-section article {
   padding: 18px;
   border: 1px solid #dbeafe;
   border-radius: 8px;
   background: #fff;
 }
 
-.ticket-related-section h2 {
+.ticket-show-page .ticket-related-section h2 {
   margin: 0 0 12px;
   font-size: 18px;
 }
 
-.related-row {
+.ticket-show-page .related-row {
   padding: 10px 0;
   border-top: 1px solid #e2e8f0;
 }
 
-.related-row strong {
+.ticket-show-page .related-row strong {
   display: block;
   color: #0f172a;
   font-size: 13px;
 }
 
-.related-row p,
-.muted {
+.ticket-show-page .related-row p,
+.ticket-show-page .muted {
   margin: 4px 0 0;
   color: #64748b;
   line-height: 1.6;
 }
 
-.related-ticket-link {
+.ticket-show-page .related-ticket-link {
   display: block;
   padding: 10px 0;
   border-top: 1px solid #e2e8f0;
@@ -335,32 +421,46 @@ dd {
 }
 
 @media (max-width: 720px) {
-  .ticket-show-page {
+.ticket-show-page {
     padding: 24px 16px;
   }
 
-  .ticket-panel {
+.ticket-show-page .ticket-panel {
     padding: 22px;
     border-radius: 22px;
   }
 
-  .ticket-header {
+.ticket-show-page .ticket-header {
     flex-direction: column;
   }
 
-  .ticket-badges {
+.ticket-show-page .top-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+.ticket-show-page .ticket-actions {
+    width: 100%;
+  }
+
+  .ticket-show-page .edit-link,
+.ticket-show-page .delete-button {
+    flex: 1;
+  }
+
+.ticket-show-page .ticket-badges {
     justify-content: start;
   }
 
-  .ticket-detail-grid {
+.ticket-show-page .ticket-detail-grid {
     grid-template-columns: 1fr;
   }
 
-  .detail-card:first-child {
+.ticket-show-page .detail-card:first-child {
     grid-column: auto;
   }
 
-  .ticket-related-section {
+.ticket-show-page .ticket-related-section {
     grid-template-columns: 1fr;
   }
 }
