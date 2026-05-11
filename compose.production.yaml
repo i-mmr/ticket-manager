@@ -1,0 +1,66 @@
+services:
+  # 本番の入口。Nginx が HTTP を受け、PHP 処理は app(PHP-FPM) に渡す。
+  web:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.production
+      target: web
+    # Nginx 設定は src/docker/nginx/default.conf からイメージにコピーする。
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  # 本番の Laravel 実行環境。開発用の php artisan serve は使わず PHP-FPM で動かす。
+  app:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.production
+      target: app
+    env_file:
+      - path: ./src/.env.production
+        required: false
+    environment:
+      # 本番では .env.production を基本にしつつ、接続先だけ Compose 内のサービス名で固定する。
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_HOST: db
+      REDIS_HOST: redis
+    volumes:
+      - app-storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  # 本番 DB はホストにポート公開しない。外部から直接接続させず、Docker ネットワーク内だけで使う。
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${PROD_MYSQL_DATABASE:-ticket_manager}
+      MYSQL_USER: ${PROD_MYSQL_USER:-ticket_manager}
+      MYSQL_PASSWORD: ${PROD_MYSQL_PASSWORD:-change-me}
+      MYSQL_ROOT_PASSWORD: ${PROD_MYSQL_ROOT_PASSWORD:-change-me-root}
+    volumes:
+      - prod-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # 本番のセッション、キュー、キャッシュ用。データは volume に永続化する。
+  redis:
+    image: redis:8-alpine
+    volumes:
+      - prod-redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  app-storage:
+  prod-db-data:
+  prod-redis-data:

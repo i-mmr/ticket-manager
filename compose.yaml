@@ -1,4 +1,5 @@
 services:
+  # 開発用構成。app コンテナひとつで Laravel と Vite を起動し、ソースは bind mount で即時反映する。
   app:
     build:
       context: ./src
@@ -9,23 +10,15 @@ services:
       - ./src:/var/www/html
     ports:
       - "8000:8000"
+      - "5173:5173"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
-    command: php artisan serve --host=0.0.0.0 --port=8000
+    command: sh docker/dev-start.sh
 
-  node:
-    image: node:22-alpine
-    working_dir: /var/www/html
-    user: "${UID}:${GID}"
-    volumes:
-      - ./src:/var/www/html
-    ports:
-      - "5173:5173"
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
-
+  # 開発では DB をホストにも公開し、GUI クライアントなどから接続しやすくする。
   db:
     image: mysql:8.4
     environment:
@@ -43,11 +36,13 @@ services:
       timeout: 3s
       retries: 20
 
+  # セッション、キュー、キャッシュの動作確認用。開発・本番どちらも Redis を使う。
   redis:
     image: redis:8-alpine
     volumes:
       - redis-data:/data
 
+  # 開発用メール確認ツール。本番では実 SMTP サービスを使うため起動しない。
   mailpit:
     image: axllent/mailpit:latest
     ports:
