@@ -54,7 +54,8 @@ class DatabaseSeeder extends Seeder
             'team_id' => $team->id,
             'email' => $email,
             'name' => 'Test User',
-            'password' => 'password',
+            'email_verified_at' => now(),
+            'password' => 'p@ssword',
         ]);
 
         $tickets = [
