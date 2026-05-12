@@ -67,6 +67,7 @@ RUN apk add --no-cache openssl
 # Nginx 公式イメージのテンプレート機能で DOMAIN を設定に反映する。
 COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/nginx/entrypoint.d/ /docker-entrypoint.d/
+RUN chmod +x /docker-entrypoint.d/10-create-self-signed-cert.sh
 
 WORKDIR /var/www/html
 
