@@ -14,7 +14,7 @@
 
 本番環境用
 - `compose.production.yaml`:
-    本番環境用。Nginx の `web` と PHP-FPM の `app` を分けます。
+    本番環境用。Nginx の `web`、PHP-FPM の `app`、証明書発行用の `certbot` を使います。
 - `.env.production.example`:
     本番用 Docker Compose 変数のテンプレートです。
 - `src/.env.production.example`:
@@ -74,6 +74,9 @@ cp src/.env.production.example src/.env.production
 
 ```env
 HTTP_PORT=80
+HTTPS_PORT=443
+DOMAIN=example.com
+LETSENCRYPT_EMAIL=admin@example.com
 MYSQL_DATABASE=ticket_manager
 MYSQL_USER=ticket_manager
 MYSQL_PASSWORD=change-me-strong-db-password
@@ -91,6 +94,15 @@ MYSQL_ROOT_PASSWORD=change-me-strong-root-password
 
 `DB_DATABASE`、`DB_USERNAME`、`DB_PASSWORD` は `src/.env.production` に直接書かず、`compose.production.yaml` が `.env.production` の `MYSQL_*` から Laravel コンテナへ渡します。`DB_HOST=db` はそのままで問題ありません。
 
+HTTPS を有効にするため、DNS の A レコードを VPS の IP アドレスに向けます。VPS のファイアウォールやクラウド側のセキュリティ設定では、80 番と 443 番を許可してください。
+
+`DOMAIN` と `APP_URL` は同じドメインにします。
+
+```env
+DOMAIN=example.com
+APP_URL=https://example.com
+```
+
 `APP_KEY` は次のコマンドで生成し、表示された値を `src/.env.production` の `APP_KEY=` に貼り付けます。
 
 ```bash
@@ -102,6 +114,13 @@ docker compose --env-file .env.production -f compose.production.yaml run --rm --
 
 ```bash
 docker compose --env-file .env.production -f compose.production.yaml up -d --build
+```
+
+初回だけ Let's Encrypt 証明書を発行し、Nginx を再読み込みします。
+
+```bash
+docker compose --env-file .env.production -f compose.production.yaml run --rm certbot
+docker compose --env-file .env.production -f compose.production.yaml exec web nginx -s reload
 ```
 
 起動後、マイグレーションと Laravel の最適化を実行します。
@@ -145,15 +164,25 @@ docker compose --env-file .env.production -f compose.production.yaml exec app ph
 本番環境では Nginx と PHP-FPM を分けています。
 
 - `web`: Nginx。HTTP リクエストを受けます。
+- `certbot`: Let's Encrypt 証明書の発行・更新用です。
 - `app`: Laravel の PHP-FPM。外部には直接公開しません。
 - `db`: MySQL。外部には公開しません。
 - `redis`: セッション、キュー、キャッシュ用です。
 
-Nginx 設定は `src/docker/nginx/default.conf` にあります。`public/` を公開ディレクトリにし、PHP の処理は `app:9000` に渡します。
+Nginx 設定は `src/docker/nginx/default.conf.template` にあります。HTTP の通常アクセスは HTTPS へリダイレクトし、`/.well-known/acme-challenge/` だけ証明書発行・更新のために HTTP で受けます。HTTPS 側では `public/` を公開ディレクトリにし、PHP の処理は `app:9000` に渡します。
+
+`certbot` は通常の `up -d` では起動しません。証明書の発行・更新が必要なタイミングで `run` して使います。
+
+証明書の更新は定期的に実行します。更新された場合は Nginx を再読み込みしてください。
+
+```bash
+docker compose --env-file .env.production -f compose.production.yaml run --rm certbot renew
+docker compose --env-file .env.production -f compose.production.yaml exec web nginx -s reload
+```
 
 ## 注意点
 
 - 本番コマンドには必ず `--env-file .env.production` を付けてください。
 - 本番では `cp .env.example .env` は使いません。
 - 本番の DB パスワードや `APP_KEY` は Git にコミットしないでください。
-- HTTPS 化はこの Docker 構成にはまだ含めていません。必要に応じて VPS 側で Caddy、Nginx リバースプロキシ、またはロードバランサを設定してください。
+- 本番公開前に `DOMAIN`、`APP_URL`、DNS、80/443 番ポートの許可を確認してください。

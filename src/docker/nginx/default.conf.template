@@ -1,6 +1,29 @@
 server {
     listen 80;
-    server_name _;
+    server_name ${DOMAIN};
+
+    # Let's Encrypt の証明書発行・更新確認だけは HTTP で受ける。
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # 通常の HTTP アクセスは HTTPS へリダイレクトする。
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${DOMAIN};
+
+    # 証明書は certbot が更新する。初回起動時だけ仮の自己署名証明書を使う。
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
 
     # Laravel は public ディレクトリだけを Web 公開する。
     root /var/www/html/public;
@@ -8,6 +31,7 @@ server {
 
     add_header X-Frame-Options "SAMEORIGIN";
     add_header X-Content-Type-Options "nosniff";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     charset utf-8;
 

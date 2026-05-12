@@ -42,13 +42,6 @@ services:
     volumes:
       - redis-data:/data
 
-  # 開発用メール確認ツール。本番では実 SMTP サービスを使うため起動しない。
-  mailpit:
-    image: axllent/mailpit:latest
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-
 volumes:
   db-data:
   redis-data:

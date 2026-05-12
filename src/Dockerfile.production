@@ -62,7 +62,11 @@ CMD ["php-fpm"]
 FROM nginx:1.27-alpine AS web
 
 # 本番の Web 入口。Laravel 用 Nginx 設定を配置する。
-COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+RUN apk add --no-cache openssl
+
+# Nginx 公式イメージのテンプレート機能で DOMAIN を設定に反映する。
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/nginx/entrypoint.d/ /docker-entrypoint.d/
 
 WORKDIR /var/www/html
 

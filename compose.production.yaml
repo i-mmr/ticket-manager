@@ -1,16 +1,32 @@
 services:
-  # 本番の入口。Nginx が HTTP を受け、PHP 処理は app(PHP-FPM) に渡す。
+  # 本番の入口。Nginx が HTTP/HTTPS を受け、HTTP は HTTPS へリダイレクトする。
   web:
     build:
       context: ./src
       dockerfile: Dockerfile.production
       target: web
-    # Nginx 設定は src/docker/nginx/default.conf からイメージにコピーする。
+    # Nginx 設定は src/docker/nginx/default.conf.template から生成する。
     ports:
       - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
     depends_on:
       - app
     restart: unless-stopped
+
+  # Let's Encrypt 証明書の発行・更新用。通常は必要なタイミングで run して使う。
+  certbot:
+    image: certbot/certbot:v2.11.0
+    profiles:
+      - certbot
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${LETSENCRYPT_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
 
   # 本番の Laravel 実行環境。開発用の php artisan serve は使わず PHP-FPM で動かす。
   app:
@@ -65,5 +81,7 @@ services:
 
 volumes:
   app-storage:
+  letsencrypt:
+  certbot-www:
   prod-db-data:
   prod-redis-data:
