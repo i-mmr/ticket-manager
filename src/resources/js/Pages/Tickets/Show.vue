@@ -55,14 +55,16 @@ const props = defineProps<{
   ticket: TicketDetail
 }>()
 
-const deleteForm = useForm({})
+const deleteForm = useForm({
+  _method: 'delete',
+})
 
 const deleteTicket = () => {
   if (!window.confirm('このチケットを削除しますか？')) {
     return
   }
 
-  deleteForm.delete(`/tickets/${props.ticket.id}`)
+  deleteForm.post(`/tickets/${props.ticket.id}`)
 }
 
 const statusLabels: Record<TicketStatus, string> = {
