@@ -22,10 +22,13 @@ services:
       - path: ./src/.env.production
         required: false
     environment:
-      # 本番では .env.production を基本にしつつ、接続先だけ Compose 内のサービス名で固定する。
+      # 本番では .env.production を基本にしつつ、DB/Redis 接続先は Compose 側で統一する。
       APP_ENV: production
       APP_DEBUG: "false"
       DB_HOST: db
+      DB_DATABASE: ${MYSQL_DATABASE:-ticket_manager}
+      DB_USERNAME: ${MYSQL_USER:-ticket_manager}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-change-me}
       REDIS_HOST: redis
     volumes:
       - app-storage:/var/www/html/storage
@@ -40,10 +43,10 @@ services:
   db:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: ${PROD_MYSQL_DATABASE:-ticket_manager}
-      MYSQL_USER: ${PROD_MYSQL_USER:-ticket_manager}
-      MYSQL_PASSWORD: ${PROD_MYSQL_PASSWORD:-change-me}
-      MYSQL_ROOT_PASSWORD: ${PROD_MYSQL_ROOT_PASSWORD:-change-me-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ticket_manager}
+      MYSQL_USER: ${MYSQL_USER:-ticket_manager}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
     volumes:
       - prod-db-data:/var/lib/mysql
     healthcheck:
