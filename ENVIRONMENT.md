@@ -53,6 +53,8 @@ docker compose exec app npm install
 docker compose exec app composer install
 ```
 
+開発環境のメール送信も Resend を使います。`src/.env` の `RESEND_API_KEY` と `MAIL_FROM_ADDRESS` を確認してください。
+
 Dockerfile、Compose、環境変数を変更した場合は再ビルドします。
 
 ```bash
@@ -82,7 +84,9 @@ MYSQL_ROOT_PASSWORD=change-me-strong-root-password
 
 - `APP_URL`: 本番の URL
 - `APP_KEY`: 本番用のアプリケーションキー
-- `MAIL_*`: 本番メール送信用の SMTP 設定
+- `MAIL_MAILER`: `resend`
+- `RESEND_API_KEY`: Resend の API キー
+- `MAIL_FROM_ADDRESS`: Resend で送信許可済みの From アドレス。本番では Resend で認証済みの独自ドメインを使ってください。
 - `APP_DEBUG`: 必ず `false`
 
 `DB_DATABASE`、`DB_USERNAME`、`DB_PASSWORD` は `src/.env.production` に直接書かず、`compose.production.yaml` が `.env.production` の `MYSQL_*` から Laravel コンテナへ渡します。`DB_HOST=db` はそのままで問題ありません。
