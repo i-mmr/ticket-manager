@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import TicketDescriptionEditor from '../../Components/TicketDescriptionEditor.vue'
 import type { TicketPriority, TicketStatus } from '../../types'
 
 interface ProjectOption {
@@ -62,7 +63,7 @@ const submit = () => {
 
           <div class="form-group">
             <label for="description">説明</label>
-            <textarea id="description" v-model="form.description" rows="7"></textarea>
+            <TicketDescriptionEditor id="description" v-model="form.description" :rows="7" />
             <p v-if="form.errors.description" class="error">{{ form.errors.description }}</p>
           </div>
 
@@ -166,13 +167,8 @@ const submit = () => {
     }
 
     input,
-    select,
-    textarea {
+    select {
       @include m.field-control(11px, 12px);
-    }
-
-    textarea {
-      resize: vertical;
     }
   }
 

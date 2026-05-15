@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
+import { renderTicketDescription } from '../../utils/ticketDescription'
 import type { TicketPriority, TicketProject, TicketStatus } from '../../types'
 
 interface TicketComment {
@@ -58,6 +60,8 @@ const props = defineProps<{
 const deleteForm = useForm({
   _method: 'delete',
 })
+
+const renderedDescription = computed(() => renderTicketDescription(props.ticket.description))
 
 const deleteTicket = () => {
   if (!window.confirm('このチケットを削除しますか？')) {
@@ -127,7 +131,8 @@ const priorityLabels: Record<TicketPriority, string> = {
 
           <div class="detail-card">
             <dt>説明</dt>
-            <dd>{{ ticket.description || '説明は未登録です。' }}</dd>
+            <dd v-if="renderedDescription" class="description-body" v-html="renderedDescription"></dd>
+            <dd v-else>説明は未登録です。</dd>
           </div>
 
           <div class="detail-card">
@@ -374,6 +379,21 @@ const priorityLabels: Record<TicketPriority, string> = {
   color: #334155;
   line-height: 1.7;
   white-space: pre-wrap;
+}
+
+.ticket-show-page .description-body {
+  overflow-wrap: anywhere;
+}
+
+.ticket-show-page .description-body :deep(.ticket-inline-code) {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: #e5e7eb;
+  color: #0891b2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+  font-weight: 400;
 }
 
 .ticket-show-page .ticket-related-section {

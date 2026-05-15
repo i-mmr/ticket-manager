@@ -123,6 +123,35 @@ docker compose --env-file .env.production -f compose.production.yaml run --rm ce
 docker compose --env-file .env.production -f compose.production.yaml exec web nginx -s reload
 ```
 
+`certbot renew` は既に発行済みの Let's Encrypt 証明書を更新するためのコマンドです。初回発行では使わず、必ず上の `run --rm certbot` を実行してください。
+
+ブラウザで「セキュリティ保護なし」と表示される場合は、Nginx が初回起動時に作成した仮の自己署名証明書を配信している可能性があります。現在配信されている証明書は次のコマンドで確認できます。
+
+```bash
+openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/dev/null | openssl x509 -noout -issuer -subject -dates
+```
+
+`issuer` と `subject` が同じドメインになっている場合は自己署名証明書です。`DOMAIN=example.com` の部分は本番ドメインに置き換えて確認してください。
+
+初回発行時に `live directory exists for example.com` と表示される場合は、仮の自己署名証明書ディレクトリが既に存在している可能性があります。まず certbot コンテナから中身を確認します。
+
+```bash
+docker compose --env-file .env.production -f compose.production.yaml run --rm --entrypoint sh certbot -c \
+'openssl x509 -in /etc/letsencrypt/live/example.com/fullchain.pem -noout -issuer -subject -dates; ls -la /etc/letsencrypt/renewal'
+```
+
+自己署名証明書であることを確認できた場合だけ、仮の証明書ディレクトリを削除してから、改めて Let's Encrypt 証明書を発行します。
+
+```bash
+docker compose --env-file .env.production -f compose.production.yaml run --rm --entrypoint sh certbot -c \
+'rm -rf /etc/letsencrypt/live/example.com /etc/letsencrypt/archive/example.com /etc/letsencrypt/renewal/example.com.conf'
+
+docker compose --env-file .env.production -f compose.production.yaml run --rm certbot
+docker compose --env-file .env.production -f compose.production.yaml exec web nginx -s reload
+```
+
+発行後、`issuer` に `Let's Encrypt` が表示されることを確認してください。
+
 起動後、マイグレーションと Laravel の最適化を実行します。
 
 ```bash
@@ -179,6 +208,8 @@ Nginx 設定は `src/docker/nginx/default.conf.template` にあります。HTTP 
 docker compose --env-file .env.production -f compose.production.yaml run --rm certbot renew
 docker compose --env-file .env.production -f compose.production.yaml exec web nginx -s reload
 ```
+
+`certbot renew` は初回発行には使えません。まだ正式な Let's Encrypt 証明書が無い場合は、本番環境の初回発行手順を実行してください。
 
 ## 注意点
 
