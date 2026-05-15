@@ -55,9 +55,11 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # 本番 DB はホストにポート公開しない。外部から直接接続させず、Docker ネットワーク内だけで使う。
+  # 本番 DB は VPS の localhost にだけ公開し、外部からは SSH トンネル経由で接続する。
   db:
     image: mysql:8.4
+    ports:
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-ticket_manager}
       MYSQL_USER: ${MYSQL_USER:-ticket_manager}
