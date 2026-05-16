@@ -9,6 +9,7 @@ interface PendingRegistration {
 
 const props = defineProps<{
   pendingRegistration: PendingRegistration
+  finalizeUrl: string
 }>()
 
 const form = useForm({
@@ -19,7 +20,7 @@ const form = useForm({
 })
 
 const submit = () => {
-  form.post(`/register/complete/${props.pendingRegistration.id}`, {
+  form.post(props.finalizeUrl, {
     onFinish: () => {
       form.reset('password', 'password_confirmation')
     },

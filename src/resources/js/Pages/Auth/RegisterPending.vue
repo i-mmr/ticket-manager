@@ -14,10 +14,10 @@ defineProps<{
     <div class="auth-card auth-card--lg">
       <Link href="/" class="brand-link">Ticket Manager</Link>
       <p class="eyebrow">Check your email</p>
-      <h1>会員登録用のURLを送信しました</h1>
+      <h1>メールをご確認ください</h1>
       <p class="lead">
         <strong>{{ email }}</strong>
-        宛に登録用メールを送りました。メールにあるURLを開くと、名前とパスワードの設定画面が表示されます。
+        で登録可能な場合、登録用URLを送信しました。メールにあるURLを開くと、名前とパスワードの設定画面が表示されます。
       </p>
 
       <p v-if="status === 'registration-link-sent'" class="status-message">

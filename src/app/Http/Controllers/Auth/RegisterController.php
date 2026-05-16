@@ -11,8 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,8 +33,9 @@ class RegisterController extends Controller
         $emailHash = EmailHasher::make($email);
 
         if (User::query()->where('email_hash', $emailHash)->exists()) {
-            throw ValidationException::withMessages([
-                'email' => 'このメールアドレスはすでに登録されています。',
+            return to_route('register.pending')->with([
+                'status' => 'registration-link-sent',
+                'registration_email' => $email,
             ]);
         }
 
@@ -74,11 +75,22 @@ class RegisterController extends Controller
                 'email' => $pendingRegistration->email,
                 'token' => $pendingRegistration->token,
             ],
+            'finalizeUrl' => URL::temporarySignedRoute(
+                'register.finalize',
+                $pendingRegistration->expires_at,
+                [
+                    'pendingRegistration' => $pendingRegistration,
+                    'hash' => $pendingRegistration->email_hash,
+                ],
+            ),
         ]);
     }
 
-    public function finalize(Request $request, PendingRegistration $pendingRegistration)
+    public function finalize(Request $request, PendingRegistration $pendingRegistration, string $hash)
     {
+        abort_unless(hash_equals($pendingRegistration->email_hash, $hash), 403);
+        abort_if($pendingRegistration->expires_at->isPast(), 403);
+
         $attributes = $request->validate([
             'token' => ['required', 'string'],
             'name' => ['required', 'string', 'max:255'],
@@ -86,7 +98,6 @@ class RegisterController extends Controller
         ]);
 
         abort_unless(hash_equals($pendingRegistration->token, $attributes['token']), 403);
-        abort_if($pendingRegistration->expires_at->isPast(), 403);
 
         $user = User::query()->create([
             'name' => $attributes['name'],

@@ -8,6 +8,7 @@ use App\Notifications\CompleteRegistrationNotification;
 use App\Support\EmailHasher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class RegisterTest extends TestCase
@@ -47,7 +48,16 @@ class RegisterTest extends TestCase
 
         $this->get($completeUrl)->assertOk();
 
-        $response = $this->post("/register/complete/{$pendingRegistration->id}", [
+        $finalizeUrl = URL::temporarySignedRoute(
+            'register.finalize',
+            $pendingRegistration->expires_at,
+            [
+                'pendingRegistration' => $pendingRegistration,
+                'hash' => $pendingRegistration->email_hash,
+            ],
+        );
+
+        $response = $this->post($finalizeUrl, [
             'token' => str_repeat('a', 64),
             'name' => 'Test User',
             'password' => 'password',
@@ -65,5 +75,42 @@ class RegisterTest extends TestCase
             'id' => $pendingRegistration->id,
         ]);
         $response->assertRedirect(route('dashboard'));
+    }
+
+    public function test_existing_user_email_gets_the_same_pending_response_without_a_registration_link(): void
+    {
+        Notification::fake();
+
+        User::factory()->create([
+            'email' => 'existing@example.com',
+            'email_hash' => EmailHasher::make('existing@example.com'),
+        ]);
+
+        $response = $this->post('/register', [
+            'email' => 'existing@example.com',
+        ]);
+
+        $this->assertDatabaseMissing('pending_registrations', [
+            'email_hash' => EmailHasher::make('existing@example.com'),
+        ]);
+        Notification::assertNothingSent();
+        $response->assertRedirect(route('register.pending'));
+    }
+
+    public function test_registration_cannot_be_finalized_without_a_signed_url(): void
+    {
+        $pendingRegistration = PendingRegistration::query()->create([
+            'email' => 'new-user@example.com',
+            'email_hash' => EmailHasher::make('new-user@example.com'),
+            'token' => str_repeat('a', 64),
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->post("/register/complete/{$pendingRegistration->id}/{$pendingRegistration->email_hash}", [
+            'token' => str_repeat('a', 64),
+            'name' => 'Test User',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertForbidden();
     }
 }
