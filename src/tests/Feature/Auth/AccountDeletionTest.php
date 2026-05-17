@@ -32,6 +32,22 @@ class AccountDeletionTest extends TestCase
         ]);
     }
 
+    public function test_inertia_delete_account_redirects_with_see_other(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeader('X-Inertia', 'true')
+            ->delete('/account', [
+                'reason' => '使い方が合わなかった',
+                'comment' => null,
+            ]);
+
+        $response->assertStatus(303);
+        $response->assertRedirect(route('home'));
+    }
+
     public function test_guest_cannot_delete_an_account(): void
     {
         $user = User::factory()->create();

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->text('email');
             $table->string('email_hash', 64)->unique();
-            $table->string('token', 64);
+            $table->string('token_hash', 64);
             $table->timestamp('expires_at');
             $table->timestamps();
         });

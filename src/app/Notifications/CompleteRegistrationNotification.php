@@ -14,6 +14,7 @@ class CompleteRegistrationNotification extends Notification
 
     public function __construct(
         private readonly PendingRegistration $pendingRegistration,
+        private readonly string $token,
     ) {}
 
     public function via(object $notifiable): array
@@ -39,6 +40,7 @@ class CompleteRegistrationNotification extends Notification
             [
                 'pendingRegistration' => $this->pendingRegistration,
                 'hash' => $this->pendingRegistration->email_hash,
+                'token' => $this->token,
             ],
         );
     }

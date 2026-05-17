@@ -7,6 +7,7 @@ use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Notifications\CompleteRegistrationNotification;
 use App\Support\EmailHasher;
+use App\Support\RegistrationTokenHasher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -39,16 +40,18 @@ class RegisterController extends Controller
             ]);
         }
 
+        $token = Str::random(64);
+
         $pendingRegistration = PendingRegistration::query()->updateOrCreate([
             'email_hash' => $emailHash,
         ], [
             'email' => $email,
-            'token' => Str::random(64),
+            'token_hash' => RegistrationTokenHasher::make($token),
             'expires_at' => now()->addMinutes(60),
         ]);
 
         Notification::route('mail', $pendingRegistration->email)
-            ->notify(new CompleteRegistrationNotification($pendingRegistration));
+            ->notify(new CompleteRegistrationNotification($pendingRegistration, $token));
 
         return to_route('register.pending')->with([
             'status' => 'registration-link-sent',
@@ -64,16 +67,19 @@ class RegisterController extends Controller
         ]);
     }
 
-    public function complete(PendingRegistration $pendingRegistration, string $hash): Response
+    public function complete(Request $request, PendingRegistration $pendingRegistration, string $hash): Response
     {
+        $token = (string) $request->query('token', '');
+
         abort_unless(hash_equals($pendingRegistration->email_hash, $hash), 403);
         abort_if($pendingRegistration->expires_at->isPast(), 403);
+        abort_unless(hash_equals($pendingRegistration->token_hash, RegistrationTokenHasher::make($token)), 403);
 
         return Inertia::render('Auth/RegisterComplete', [
             'pendingRegistration' => [
                 'id' => $pendingRegistration->id,
                 'email' => $pendingRegistration->email,
-                'token' => $pendingRegistration->token,
+                'token' => $token,
             ],
             'finalizeUrl' => URL::temporarySignedRoute(
                 'register.finalize',
@@ -81,6 +87,7 @@ class RegisterController extends Controller
                 [
                     'pendingRegistration' => $pendingRegistration,
                     'hash' => $pendingRegistration->email_hash,
+                    'token' => $token,
                 ],
             ),
         ]);
@@ -97,7 +104,8 @@ class RegisterController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        abort_unless(hash_equals($pendingRegistration->token, $attributes['token']), 403);
+        abort_unless(hash_equals((string) $request->query('token', ''), $attributes['token']), 403);
+        abort_unless(hash_equals($pendingRegistration->token_hash, RegistrationTokenHasher::make($attributes['token'])), 403);
 
         $user = User::query()->create([
             'name' => $attributes['name'],

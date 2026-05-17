@@ -6,7 +6,7 @@ use App\Support\EmailHasher;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['email', 'email_hash', 'token', 'expires_at'])]
+#[Fillable(['email', 'email_hash', 'token_hash', 'expires_at'])]
 class PendingRegistration extends Model
 {
     protected static function booted(): void
