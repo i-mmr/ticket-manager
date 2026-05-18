@@ -9,13 +9,22 @@ interface ProjectOption {
   workspace: string | null
 }
 
+interface UserOption {
+  id: number
+  name: string
+  email: string
+}
+
 defineProps<{
   projects: ProjectOption[]
+  users: UserOption[]
 }>()
 
 const form = useForm({
   project_id: '' as number | '',
+  assignee_id: '' as number | '',
   title: '',
+  category: '',
   description: '',
   status: 'open' as TicketStatus,
   priority: 'medium' as TicketPriority,
@@ -31,7 +40,7 @@ const submit = () => {
 
   <div class="ticket-form-page">
     <main class="ticket-form-shell">
-      <Link href="/dashboard" class="back-link">
+      <Link href="/tickets" class="back-link">
         一覧へ戻る
       </Link>
 
@@ -59,6 +68,25 @@ const submit = () => {
             <label for="title">タイトル</label>
             <input id="title" v-model="form.title" type="text" autocomplete="off" />
             <p v-if="form.errors.title" class="error">{{ form.errors.title }}</p>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="category">カテゴリ</label>
+              <input id="category" v-model="form.category" type="text" autocomplete="off" />
+              <p v-if="form.errors.category" class="error">{{ form.errors.category }}</p>
+            </div>
+
+            <div class="form-group">
+              <label for="assignee_id">担当者</label>
+              <select id="assignee_id" v-model="form.assignee_id">
+                <option value="">未選択</option>
+                <option v-for="user in users" :key="user.id" :value="user.id">
+                  {{ user.name }}
+                </option>
+              </select>
+              <p v-if="form.errors.assignee_id" class="error">{{ form.errors.assignee_id }}</p>
+            </div>
           </div>
 
           <div class="form-group">
@@ -90,7 +118,7 @@ const submit = () => {
           </div>
 
           <div class="form-actions">
-            <Link href="/dashboard" class="secondary-button">キャンセル</Link>
+            <Link href="/tickets" class="secondary-button">キャンセル</Link>
             <button type="submit" class="primary-button" :disabled="form.processing">
               {{ form.processing ? '登録中...' : '登録する' }}
             </button>

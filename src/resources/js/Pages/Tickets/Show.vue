@@ -40,9 +40,12 @@ interface TicketDetail {
   id: number
   project: TicketProject | null
   title: string
+  category: string | null
   description: string | null
   status: TicketStatus
   priority: TicketPriority
+  assignee: string | null
+  creator: string | null
   comments: TicketComment[]
   attachments: TicketAttachment[]
   activities: TicketActivity[]
@@ -90,7 +93,7 @@ const priorityLabels: Record<TicketPriority, string> = {
   <div class="ticket-show-page">
     <div class="ticket-show-shell">
       <div class="top-actions">
-        <Link href="/dashboard" class="back-link">
+        <Link href="/tickets" class="back-link">
           一覧へ戻る
         </Link>
         <div class="ticket-actions">
@@ -133,6 +136,21 @@ const priorityLabels: Record<TicketPriority, string> = {
             <dt>説明</dt>
             <dd v-if="renderedDescription" class="description-body" v-html="renderedDescription"></dd>
             <dd v-else>説明は未登録です。</dd>
+          </div>
+
+          <div class="detail-card">
+            <dt>カテゴリ</dt>
+            <dd>{{ ticket.category || '未設定' }}</dd>
+          </div>
+
+          <div class="detail-card">
+            <dt>担当者</dt>
+            <dd>{{ ticket.assignee || '未設定' }}</dd>
+          </div>
+
+          <div class="detail-card">
+            <dt>登録者</dt>
+            <dd>{{ ticket.creator || '未設定' }}</dd>
           </div>
 
           <div class="detail-card">

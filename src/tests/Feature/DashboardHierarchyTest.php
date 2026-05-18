@@ -40,11 +40,11 @@ class DashboardHierarchyTest extends TestCase
             'priority' => 'high',
         ]);
 
-        $response = $this->actingAs($user)->get(route('dashboard'));
+        $response = $this->actingAs($user)->get(route('tickets.index'));
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('Dashboard', false)
+            ->component('Tickets/Index', false)
             ->where('workspaces.0.name', 'Customer Success')
             ->where('workspaces.0.teams.0.name', 'Tier 1 Support')
             ->where('workspaces.0.teams.0.users.0.name', 'Support User')

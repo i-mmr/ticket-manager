@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Head, Link, useForm } from '@inertiajs/vue3'
-import type { TicketPriority, TicketProject, TicketStatus } from '../types'
+import { Head, Link } from '@inertiajs/vue3'
+import AppLayout from '../../Components/AppLayout.vue'
+import PageHeader from '../../Components/PageHeader.vue'
+import type { TicketPriority, TicketProject, TicketStatus } from '../../types'
 
 type TicketViewMode = 'card' | 'list'
 
@@ -47,6 +49,7 @@ interface Ticket {
   id: number
   project: TicketProject | null
   title: string
+  category: string | null
   description: string | null
   status: TicketStatus
   priority: TicketPriority
@@ -66,38 +69,10 @@ const props = withDefaults(defineProps<DashboardProps>(), {
   tickets: () => [],
 })
 
-const isMenuOpen = ref(false)
-const isPasswordModalOpen = ref(false)
-const isDeleteModalOpen = ref(false)
 const selectedProjectId = ref<number | null>(null)
 const ticketViewMode = ref<TicketViewMode>('card')
 const currentPage = ref(1)
 const ticketsPerPage = 50
-
-const logoutForm = useForm({})
-const passwordForm = useForm({
-  current_password: '',
-  password: '',
-  password_confirmation: '',
-})
-const deleteAccountForm = useForm({
-  reason: '',
-  comment: '',
-})
-
-const avatarLabel = computed(() => {
-  if (!props.currentUser?.name) {
-    return '?'
-  }
-
-  return props.currentUser.name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase()
-})
 
 const firstProject = computed(() => {
   for (const workspace of props.workspaces) {
@@ -188,51 +163,6 @@ const goToPage = (page: number) => {
   currentPage.value = Math.min(Math.max(page, 1), totalPages.value)
 }
 
-const openPasswordModal = () => {
-  isMenuOpen.value = false
-  isPasswordModalOpen.value = true
-}
-
-const openDeleteModal = () => {
-  isMenuOpen.value = false
-  isDeleteModalOpen.value = true
-}
-
-const closePasswordModal = () => {
-  isPasswordModalOpen.value = false
-  passwordForm.reset('current_password', 'password', 'password_confirmation')
-  passwordForm.clearErrors()
-}
-
-const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false
-  deleteAccountForm.reset('reason', 'comment')
-  deleteAccountForm.clearErrors()
-}
-
-const logout = () => {
-  isMenuOpen.value = false
-  logoutForm.post('/logout')
-}
-
-const updatePassword = () => {
-  passwordForm.patch('/account/password', {
-    preserveScroll: true,
-    onSuccess: () => {
-      closePasswordModal()
-    },
-    onFinish: () => {
-      passwordForm.reset('current_password', 'password', 'password_confirmation')
-    },
-  })
-}
-
-const deleteAccount = () => {
-  deleteAccountForm.delete('/account', {
-    preserveScroll: true,
-  })
-}
-
 const statusLabels: Record<TicketStatus, string> = {
   open: '未対応',
   in_progress: '対応中',
@@ -255,48 +185,16 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
 <template>
   <Head title="チケット一覧" />
 
-  <div class="dashboard-page">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Ticket Manager</p>
-        <h1>チケット一覧</h1>
-        <p class="description">
-          ログイン後に現在の対応チケットを確認できます。
-        </p>
-      </div>
-
-      <div class="account-shell">
-        <button
-          type="button"
-          class="account-trigger"
-          @click="isMenuOpen = !isMenuOpen"
-          :aria-expanded="isMenuOpen"
-          aria-haspopup="menu"
-        >
-          <span class="account-avatar">{{ avatarLabel }}</span>
-        </button>
-
-        <div v-if="isMenuOpen" class="account-menu" role="menu">
-          <div class="account-summary">
-            <div class="account-avatar large">{{ avatarLabel }}</div>
-            <div>
-              <p class="account-name">{{ currentUser.name }}</p>
-              <p class="account-email">{{ currentUser.email }}</p>
-            </div>
-          </div>
-
-          <button type="button" class="menu-item" @click="openPasswordModal">
-            パスワード変更
-          </button>
-          <button type="button" class="menu-item danger" @click="openDeleteModal">
-            退会
-          </button>
-          <button type="button" class="menu-item subtle" @click="logout" :disabled="logoutForm.processing">
-            {{ logoutForm.processing ? '送信中...' : 'ログアウト' }}
-          </button>
-        </div>
-      </div>
-    </header>
+  <AppLayout
+    :current-user="currentUser"
+    active="tickets"
+    :workspaces="workspaces"
+    :active-project-id="activeProjectId"
+    selectable-projects
+    @select-project="selectProject"
+  >
+    <div class="dashboard-page">
+      <PageHeader title="チケット一覧" description="ログイン後に現在の対応チケットを確認できます。" />
 
     <p v-if="status" class="status-banner">
       {{
@@ -307,59 +205,6 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
             : status
       }}
     </p>
-
-    <div class="dashboard-layout">
-      <aside class="left-pane" aria-label="ワークスペースナビゲーション">
-        <div v-if="workspaces.length" class="workspace-list">
-          <section v-for="workspace in workspaces" :key="workspace.id" class="workspace-group">
-            <div class="workspace-row">
-              <span class="workspace-icon">W</span>
-              <div>
-                <h3>{{ workspace.name }}</h3>
-                <p>{{ workspace.projects.length }}プロジェクト / {{ workspace.teams.length }}チーム</p>
-              </div>
-            </div>
-
-            <div class="tree-block">
-              <p class="tree-label">チーム</p>
-              <div v-for="team in workspace.teams" :key="team.id" class="tree-item">
-                <span class="tree-dot team-dot"></span>
-                <div>
-                  <strong>{{ team.name }}</strong>
-                  <p>{{ team.users.length }}ユーザー</p>
-                  <ul v-if="team.users.length" class="user-list">
-                    <li v-for="user in team.users" :key="user.id">
-                      {{ user.name }}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="tree-block">
-              <p class="tree-label">プロジェクト</p>
-              <button
-                v-for="project in workspace.projects"
-                :key="project.id"
-                type="button"
-                class="tree-item project-item"
-                :class="{ active: project.id === activeProjectId }"
-                @click="selectProject(project.id)"
-              >
-                <span class="tree-dot project-dot"></span>
-                <div>
-                  <strong>{{ project.name }}</strong>
-                  <p>{{ project.tickets_count }}チケット</p>
-                </div>
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <div v-else class="pane-empty">
-          ワークスペースはまだありません。
-        </div>
-      </aside>
 
       <section class="ticket-section">
         <div class="section-header">
@@ -465,6 +310,7 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
             </div>
 
             <h3>{{ ticket.title }}</h3>
+            <p class="ticket-category">カテゴリ: {{ ticket.category || '未設定' }}</p>
             <p class="ticket-description">
               {{ ticket.description || '説明は未登録です。' }}
             </p>
@@ -487,148 +333,15 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
         </div>
       </section>
     </div>
-
-    <div v-if="isMenuOpen" class="scrim" @click="isMenuOpen = false"></div>
-
-    <div v-if="isPasswordModalOpen" class="modal-layer">
-      <div class="modal-backdrop" @click="closePasswordModal"></div>
-      <div class="modal-panel">
-        <div class="modal-header">
-          <div>
-            <p class="modal-eyebrow">Security</p>
-            <h2>パスワード変更</h2>
-          </div>
-          <button type="button" class="icon-button" @click="closePasswordModal">×</button>
-        </div>
-
-        <form class="modal-form" @submit.prevent="updatePassword">
-          <div class="form-group">
-            <label for="current_password">現在のパスワード</label>
-            <input
-              id="current_password"
-              v-model="passwordForm.current_password"
-              type="password"
-              autocomplete="current-password"
-            />
-            <p v-if="passwordForm.errors.current_password" class="error">
-              {{ passwordForm.errors.current_password }}
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label for="password">新しいパスワード</label>
-            <input
-              id="password"
-              v-model="passwordForm.password"
-              type="password"
-              autocomplete="new-password"
-            />
-            <p v-if="passwordForm.errors.password" class="error">
-              {{ passwordForm.errors.password }}
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label for="password_confirmation">新しいパスワード確認</label>
-            <input
-              id="password_confirmation"
-              v-model="passwordForm.password_confirmation"
-              type="password"
-              autocomplete="new-password"
-            />
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" class="secondary-button" @click="closePasswordModal">
-              キャンセル
-            </button>
-            <button type="submit" class="primary-button" :disabled="passwordForm.processing">
-              {{ passwordForm.processing ? '更新中...' : '変更する' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div v-if="isDeleteModalOpen" class="modal-layer">
-      <div class="modal-backdrop" @click="closeDeleteModal"></div>
-      <div class="modal-panel">
-        <div class="modal-header">
-          <div>
-            <p class="modal-eyebrow danger-text">Exit survey</p>
-            <h2>退会前アンケート</h2>
-          </div>
-          <button type="button" class="icon-button" @click="closeDeleteModal">×</button>
-        </div>
-
-        <form class="modal-form" @submit.prevent="deleteAccount">
-          <div class="form-group">
-            <label for="reason">退会理由</label>
-            <select id="reason" v-model="deleteAccountForm.reason">
-              <option value="" disabled>選択してください</option>
-              <option value="業務で使わなくなった">業務で使わなくなった</option>
-              <option value="使い方が合わなかった">使い方が合わなかった</option>
-              <option value="必要な機能が足りなかった">必要な機能が足りなかった</option>
-              <option value="料金や導入コストが見合わなかった">料金や導入コストが見合わなかった</option>
-              <option value="その他">その他</option>
-            </select>
-            <p v-if="deleteAccountForm.errors.reason" class="error">
-              {{ deleteAccountForm.errors.reason }}
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label for="comment">コメント</label>
-            <textarea
-              id="comment"
-              v-model="deleteAccountForm.comment"
-              rows="4"
-              placeholder="差し支えない範囲で教えてください"
-            ></textarea>
-            <p v-if="deleteAccountForm.errors.comment" class="error">
-              {{ deleteAccountForm.errors.comment }}
-            </p>
-          </div>
-
-          <p class="danger-note">
-            退会すると、このアカウントではログインできなくなります。
-          </p>
-
-          <div class="modal-actions">
-            <button type="button" class="secondary-button" @click="closeDeleteModal">
-              戻る
-            </button>
-            <button type="submit" class="danger-button" :disabled="deleteAccountForm.processing">
-              {{ deleteAccountForm.processing ? '処理中...' : '退会する' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+  </AppLayout>
 </template>
 
 <style scoped lang="scss">
-@use '../../scss/abstracts/variables' as v;
-@use '../../scss/abstracts/mixins' as m;
+@use '../../../scss/abstracts/variables' as v;
+@use '../../../scss/abstracts/mixins' as m;
 
 .dashboard-page {
-  min-height: 100vh;
-  padding: 40px 24px;
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
   color: #172554;
-}
-
-.dashboard-page .page-header {
-  position: relative;
-  max-width: 1040px;
-  margin: 0 auto 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 16px;
 }
 
 .dashboard-page .eyebrow {
@@ -638,16 +351,6 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #2563eb;
-}
-
-.dashboard-page h1 {
-  margin: 0;
-  font-size: clamp(32px, 5vw, 48px);
-}
-
-.dashboard-page .description {
-  margin: 12px 0 0;
-  color: #475569;
 }
 
 .dashboard-page .account-shell {
@@ -744,7 +447,6 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
 }
 
 .dashboard-page .status-banner {
-  max-width: 1040px;
   margin: 0 auto 18px;
   padding: 12px 14px;
   border-radius: 8px;
@@ -755,8 +457,6 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
 }
 
 .dashboard-page .dashboard-layout {
-  max-width: 1180px;
-  margin: 0 auto;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 20px;
@@ -1168,6 +868,7 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
 }
 
 .dashboard-page .ticket-description,
+.dashboard-page .ticket-category,
 .dashboard-page .created-at {
   margin: 0;
   color: #475569;
@@ -1383,18 +1084,6 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
 }
 
 @media (max-width: 720px) {
-.dashboard-page {
-    padding: 24px 16px;
-  }
-
-.dashboard-page .page-header {
-    align-items: start;
-  }
-
-.dashboard-page .description {
-    max-width: 240px;
-  }
-
   .dashboard-page .section-header,
 .dashboard-page .ticket-toolbar {
     align-items: stretch;
@@ -1409,7 +1098,7 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
     grid-template-columns: 1fr;
   }
 
-.dashboard-page .dashboard-layout {
+  .dashboard-page .dashboard-layout {
     grid-template-columns: 1fr;
   }
 

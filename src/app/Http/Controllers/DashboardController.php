@@ -4,34 +4,55 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\Workspace;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(): Response
+    public function __invoke(): RedirectResponse
+    {
+        return to_route('home.dashboard');
+    }
+
+    public function home(): Response
     {
         $user = auth()->user();
 
-        $tickets = Ticket::query()
-            ->with('project.workspace')
-            ->latest()
-            ->get()
-            ->map(fn (Ticket $ticket) => [
-                'id' => $ticket->id,
-                'project' => $ticket->project ? [
-                    'id' => $ticket->project->id,
-                    'name' => $ticket->project->name,
-                    'workspace' => $ticket->project->workspace?->name,
-                ] : null,
-                'title' => $ticket->title,
-                'description' => $ticket->description,
-                'status' => $ticket->status,
-                'priority' => $ticket->priority,
-                'created_at' => $ticket->created_at?->format('Y-m-d H:i'),
-            ]);
+        return Inertia::render('Home', [
+            'currentUser' => [
+                'name' => $user?->name,
+                'email' => $user?->email,
+            ],
+            'status' => session('status'),
+            'workspaces' => $this->workspaces(),
+            'assignedTickets' => $this->ticketsFor('assignee_id', $user?->id),
+            'createdTickets' => $this->ticketsFor('created_by', $user?->id),
+        ]);
+    }
 
-        $workspaces = Workspace::query()
+    public function projects(): Response
+    {
+        return Inertia::render('Projects/Index', [
+            'currentUser' => $this->currentUser(),
+            'workspaces' => $this->workspaces(),
+        ]);
+    }
+
+    public function schedule(): Response
+    {
+        return Inertia::render('Schedule/Index', [
+            'currentUser' => $this->currentUser(),
+            'workspaces' => $this->workspaces(),
+        ]);
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, teams: mixed, projects: mixed}>
+     */
+    private function workspaces(): array
+    {
+        return Workspace::query()
             ->with([
                 'teams.users:id,team_id,name,email',
                 'projects' => fn ($query) => $query->withCount('tickets')->orderBy('name'),
@@ -62,16 +83,44 @@ class DashboardController extends Controller
                     'status' => $project->status,
                     'tickets_count' => $project->tickets_count,
                 ]),
-            ]);
+            ])
+            ->all();
+    }
 
-        return Inertia::render('Dashboard', [
-            'currentUser' => [
-                'name' => $user?->name,
-                'email' => $user?->email,
-            ],
-            'status' => session('status'),
-            'workspaces' => $workspaces,
-            'tickets' => $tickets,
-        ]);
+    /**
+     * @return array<int, array{id: int, project_name: string|null, title: string, category: string|null, status: string}>
+     */
+    private function ticketsFor(string $column, ?int $userId): array
+    {
+        if (! $userId) {
+            return [];
+        }
+
+        return Ticket::query()
+            ->with('project')
+            ->where($column, $userId)
+            ->latest()
+            ->get()
+            ->map(fn (Ticket $ticket) => [
+                'id' => $ticket->id,
+                'project_name' => $ticket->project?->name,
+                'title' => $ticket->title,
+                'category' => $ticket->category,
+                'status' => $ticket->status,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{name: string|null, email: string|null}
+     */
+    private function currentUser(): array
+    {
+        $user = auth()->user();
+
+        return [
+            'name' => $user?->name,
+            'email' => $user?->email,
+        ];
     }
 }

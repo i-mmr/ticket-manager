@@ -17,6 +17,8 @@ class TicketShowController extends Controller
             'activities',
             'subtasks',
             'relatedTickets',
+            'assignee',
+            'creator',
         ]);
 
         return Inertia::render('Tickets/Show', [
@@ -29,9 +31,12 @@ class TicketShowController extends Controller
                     'workspace' => $ticket->project->workspace?->name,
                 ] : null,
                 'title' => $ticket->title,
+                'category' => $ticket->category,
                 'description' => $ticket->description,
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
+                'assignee' => $ticket->assignee?->name,
+                'creator' => $ticket->creator?->name,
                 'comments' => $ticket->comments->map(fn ($comment) => [
                     'id' => $comment->id,
                     'body' => $comment->body,

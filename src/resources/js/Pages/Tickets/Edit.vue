@@ -9,10 +9,18 @@ interface ProjectOption {
   workspace: string | null
 }
 
+interface UserOption {
+  id: number
+  name: string
+  email: string
+}
+
 interface EditableTicket {
   id: number
   project_id: number | null
+  assignee_id: number | null
   title: string
+  category: string | null
   description: string | null
   status: TicketStatus
   priority: TicketPriority
@@ -20,12 +28,15 @@ interface EditableTicket {
 
 const props = defineProps<{
   projects: ProjectOption[]
+  users: UserOption[]
   ticket: EditableTicket
 }>()
 
 const form = useForm({
   project_id: props.ticket.project_id ?? '',
+  assignee_id: props.ticket.assignee_id ?? '',
   title: props.ticket.title,
+  category: props.ticket.category ?? '',
   description: props.ticket.description ?? '',
   status: props.ticket.status,
   priority: props.ticket.priority,
@@ -69,6 +80,25 @@ const submit = () => {
             <label for="title">タイトル</label>
             <input id="title" v-model="form.title" type="text" autocomplete="off" />
             <p v-if="form.errors.title" class="error">{{ form.errors.title }}</p>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="category">カテゴリ</label>
+              <input id="category" v-model="form.category" type="text" autocomplete="off" />
+              <p v-if="form.errors.category" class="error">{{ form.errors.category }}</p>
+            </div>
+
+            <div class="form-group">
+              <label for="assignee_id">担当者</label>
+              <select id="assignee_id" v-model="form.assignee_id">
+                <option value="">未選択</option>
+                <option v-for="user in users" :key="user.id" :value="user.id">
+                  {{ user.name }}
+                </option>
+              </select>
+              <p v-if="form.errors.assignee_id" class="error">{{ form.errors.assignee_id }}</p>
+            </div>
           </div>
 
           <div class="form-group">

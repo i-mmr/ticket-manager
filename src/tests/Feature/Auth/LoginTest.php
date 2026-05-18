@@ -10,7 +10,7 @@ class LoginTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_log_in_and_is_redirected_to_dashboard(): void
+    public function test_user_can_log_in_and_is_redirected_to_home(): void
     {
         $user = User::factory()->create([
             'password' => 'password',
@@ -21,7 +21,7 @@ class LoginTest extends TestCase
             'password' => 'password',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('home.dashboard'));
         $this->assertAuthenticatedAs($user);
     }
 

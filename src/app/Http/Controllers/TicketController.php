@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Ticket;
+use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -12,16 +14,87 @@ use Inertia\Response;
 
 class TicketController extends Controller
 {
+    public function index(): Response
+    {
+        $user = auth()->user();
+
+        $tickets = Ticket::query()
+            ->with('project.workspace')
+            ->latest()
+            ->get()
+            ->map(fn (Ticket $ticket) => [
+                'id' => $ticket->id,
+                'project' => $ticket->project ? [
+                    'id' => $ticket->project->id,
+                    'name' => $ticket->project->name,
+                    'workspace' => $ticket->project->workspace?->name,
+                ] : null,
+                'title' => $ticket->title,
+                'category' => $ticket->category,
+                'description' => $ticket->description,
+                'status' => $ticket->status,
+                'priority' => $ticket->priority,
+                'created_at' => $ticket->created_at?->format('Y-m-d H:i'),
+            ]);
+
+        $workspaces = Workspace::query()
+            ->with([
+                'teams.users:id,team_id,name,email',
+                'projects' => fn ($query) => $query->withCount('tickets')->orderBy('name'),
+            ])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Workspace $workspace) => [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'teams' => $workspace->teams
+                    ->sortBy('name')
+                    ->values()
+                    ->map(fn ($team) => [
+                        'id' => $team->id,
+                        'name' => $team->name,
+                        'users' => $team->users
+                            ->sortBy('name')
+                            ->values()
+                            ->map(fn ($user) => [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'email' => $user->email,
+                            ]),
+                    ]),
+                'projects' => $workspace->projects->map(fn ($project) => [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'status' => $project->status,
+                    'tickets_count' => $project->tickets_count,
+                ]),
+            ]);
+
+        return Inertia::render('Tickets/Index', [
+            'currentUser' => [
+                'name' => $user?->name,
+                'email' => $user?->email,
+            ],
+            'status' => session('status'),
+            'workspaces' => $workspaces,
+            'tickets' => $tickets,
+        ]);
+    }
+
     public function create(): Response
     {
         return Inertia::render('Tickets/Create', [
             'projects' => $this->projects(),
+            'users' => $this->users(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $ticket = Ticket::query()->create($this->validated($request));
+        $ticket = Ticket::query()->create([
+            ...$this->validated($request),
+            'created_by' => $request->user()?->id,
+        ]);
 
         $ticket->activities()->create([
             'user_id' => $request->user()?->id,
@@ -38,10 +111,13 @@ class TicketController extends Controller
     {
         return Inertia::render('Tickets/Edit', [
             'projects' => $this->projects(),
+            'users' => $this->users(),
             'ticket' => [
                 'id' => $ticket->id,
                 'project_id' => $ticket->project_id,
+                'assignee_id' => $ticket->assignee_id,
                 'title' => $ticket->title,
+                'category' => $ticket->category,
                 'description' => $ticket->description,
                 'status' => $ticket->status,
                 'priority' => $ticket->priority,
@@ -69,7 +145,7 @@ class TicketController extends Controller
         $ticket->delete();
 
         return redirect()
-            ->route('dashboard')
+            ->route('tickets.index')
             ->with('status', 'ticket-deleted');
     }
 
@@ -91,13 +167,31 @@ class TicketController extends Controller
     }
 
     /**
-     * @return array{project_id: int|null, title: string, description: string|null, status: string, priority: string}
+     * @return array<int, array{id: int, name: string, email: string}>
+     */
+    private function users(): array
+    {
+        return User::query()
+            ->orderBy('id')
+            ->get(['id', 'name', 'email'])
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{project_id: int|null, assignee_id: int|null, title: string, category: string|null, description: string|null, status: string, priority: string}
      */
     private function validated(Request $request): array
     {
         return $request->validate([
             'project_id' => ['nullable', 'integer', Rule::exists('projects', 'id')],
+            'assignee_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'title' => ['required', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::in(['open', 'in_progress', 'done'])],
             'priority' => ['required', Rule::in(['high', 'medium', 'low'])],

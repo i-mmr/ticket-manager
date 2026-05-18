@@ -37,6 +37,10 @@ Route::middleware('auth')->group(function () {
     // メール確認済みユーザーだけが利用できるダッシュボードとチケット操作。
     Route::middleware('verified')->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
+        Route::get('/home', [DashboardController::class, 'home'])->name('home.dashboard');
+        Route::get('/projects', [DashboardController::class, 'projects'])->name('projects.index');
+        Route::get('/schedule', [DashboardController::class, 'schedule'])->name('schedule.index');
+        Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
         Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');
         Route::get('/tickets/{ticket}/edit', [TicketController::class, 'edit'])->name('tickets.edit');
         Route::get('/tickets/{ticket}', TicketShowController::class)->name('tickets.show');

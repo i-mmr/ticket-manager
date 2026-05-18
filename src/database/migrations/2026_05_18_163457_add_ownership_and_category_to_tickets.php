@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('tickets', function (Blueprint $table) {
+            $table->foreignId('assignee_id')->nullable()->after('project_id')->constrained('users')->nullOnDelete();
+            $table->foreignId('created_by')->nullable()->after('assignee_id')->constrained('users')->nullOnDelete();
+            $table->string('category')->nullable()->after('title');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('tickets', function (Blueprint $table) {
+            $table->dropColumn('category');
+            $table->dropConstrainedForeignId('created_by');
+            $table->dropConstrainedForeignId('assignee_id');
+        });
+    }
+};
