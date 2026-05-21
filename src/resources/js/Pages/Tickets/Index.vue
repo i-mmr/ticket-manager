@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '../../Components/AppLayout.vue'
 import PageHeader from '../../Components/PageHeader.vue'
 import type { TicketPriority, TicketProject, TicketStatus } from '../../types'
+import type { WorkspaceProject, WorkspaceTree } from '../../types/workspace'
 
 type TicketViewMode = 'card' | 'list'
 
@@ -12,37 +13,6 @@ interface ChartItem {
   label: string
   count: number
   percent: number
-}
-
-interface CurrentUser {
-  name: string | null
-  email: string | null
-}
-
-interface WorkspaceUser {
-  id: number
-  name: string
-  email: string
-}
-
-interface Team {
-  id: number
-  name: string
-  users: WorkspaceUser[]
-}
-
-interface Project {
-  id: number
-  name: string
-  status: string
-  tickets_count: number
-}
-
-interface Workspace {
-  id: number
-  name: string
-  teams: Team[]
-  projects: Project[]
 }
 
 interface Ticket {
@@ -57,25 +27,28 @@ interface Ticket {
 }
 
 interface DashboardProps {
-  currentUser: CurrentUser
   status?: string | null
-  workspaces?: Workspace[]
   tickets?: Ticket[]
+}
+
+interface SharedProps extends Record<string, unknown> {
+  workspaces?: WorkspaceTree[]
 }
 
 const props = withDefaults(defineProps<DashboardProps>(), {
   status: null,
-  workspaces: () => [],
   tickets: () => [],
 })
 
+const page = usePage<SharedProps>()
+const workspaces = computed<WorkspaceTree[]>(() => page.props.workspaces ?? [])
 const selectedProjectId = ref<number | null>(null)
 const ticketViewMode = ref<TicketViewMode>('card')
 const currentPage = ref(1)
 const ticketsPerPage = 50
 
-const firstProject = computed(() => {
-  for (const workspace of props.workspaces) {
+const firstProject = computed<WorkspaceProject | null>(() => {
+  for (const workspace of workspaces.value) {
     if (workspace.projects.length) {
       return workspace.projects[0]
     }
@@ -87,7 +60,7 @@ const firstProject = computed(() => {
 const activeProjectId = computed(() => selectedProjectId.value ?? firstProject.value?.id ?? null)
 
 const selectedProject = computed(() => {
-  for (const workspace of props.workspaces) {
+  for (const workspace of workspaces.value) {
     const project = workspace.projects.find((item) => item.id === activeProjectId.value)
 
     if (project) {
@@ -186,9 +159,7 @@ const priorityChartItems = computed(() => buildTicketDistribution(priorityOrder,
   <Head title="チケット一覧" />
 
   <AppLayout
-    :current-user="currentUser"
     active="tickets"
-    :workspaces="workspaces"
     :active-project-id="activeProjectId"
     selectable-projects
     @select-project="selectProject"

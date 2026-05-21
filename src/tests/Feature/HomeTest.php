@@ -52,7 +52,7 @@ class HomeTest extends TestCase
             'priority' => 'low',
         ]);
 
-        $response = $this->actingAs($user)->get(route('home.dashboard'));
+        $response = $this->actingAs($user)->get(route('home'));
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page

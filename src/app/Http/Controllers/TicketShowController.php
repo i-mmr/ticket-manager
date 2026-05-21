@@ -6,6 +6,12 @@ use App\Models\Ticket;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * チケット詳細画面だけを担当する単一アクション Controller。
+ *
+ * `GET /tickets/{ticket}` から使う。
+ * 詳細表示に必要なコメント、添付、活動履歴、サブタスク、関連チケットなどをまとめて読み込む。
+ */
 class TicketShowController extends Controller
 {
     public function __invoke(Ticket $ticket): Response

@@ -18,6 +18,12 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * 未ログインユーザーの仮登録、本登録完了、登録待ち画面を担当する。
+ *
+ * `/register`、`/register/pending`、`/register/complete/{pendingRegistration}/{hash}` から使う。
+ * 登録完了メールの送信、期限付き署名 URL とトークン検証、ユーザー作成までを扱う。
+ */
 class RegisterController extends Controller
 {
     public function create(): Response

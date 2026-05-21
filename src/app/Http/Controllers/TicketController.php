@@ -5,19 +5,23 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * チケットの一覧、作成、登録、編集、更新、削除を担当する。
+ *
+ * `/tickets`、`/tickets/create`、`/tickets/{ticket}/edit`、`POST /tickets`、
+ * `PATCH /tickets/{ticket}`、`DELETE /tickets/{ticket}` から使う。
+ * 入力検証、プロジェクト・ユーザー選択肢の取得、作成・更新時の活動履歴記録も扱う。
+ */
 class TicketController extends Controller
 {
     public function index(): Response
     {
-        $user = auth()->user();
-
         $tickets = Ticket::query()
             ->with('project.workspace')
             ->latest()
@@ -37,46 +41,8 @@ class TicketController extends Controller
                 'created_at' => $ticket->created_at?->format('Y-m-d H:i'),
             ]);
 
-        $workspaces = Workspace::query()
-            ->with([
-                'teams.users:id,team_id,name,email',
-                'projects' => fn ($query) => $query->withCount('tickets')->orderBy('name'),
-            ])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Workspace $workspace) => [
-                'id' => $workspace->id,
-                'name' => $workspace->name,
-                'teams' => $workspace->teams
-                    ->sortBy('name')
-                    ->values()
-                    ->map(fn ($team) => [
-                        'id' => $team->id,
-                        'name' => $team->name,
-                        'users' => $team->users
-                            ->sortBy('name')
-                            ->values()
-                            ->map(fn ($user) => [
-                                'id' => $user->id,
-                                'name' => $user->name,
-                                'email' => $user->email,
-                            ]),
-                    ]),
-                'projects' => $workspace->projects->map(fn ($project) => [
-                    'id' => $project->id,
-                    'name' => $project->name,
-                    'status' => $project->status,
-                    'tickets_count' => $project->tickets_count,
-                ]),
-            ]);
-
         return Inertia::render('Tickets/Index', [
-            'currentUser' => [
-                'name' => $user?->name,
-                'email' => $user?->email,
-            ],
             'status' => session('status'),
-            'workspaces' => $workspaces,
             'tickets' => $tickets,
         ]);
     }

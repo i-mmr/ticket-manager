@@ -21,7 +21,7 @@ class AccountDeletionTest extends TestCase
             'comment' => '必要な導線を試したかったです。',
         ]);
 
-        $response->assertRedirect(route('home'));
+        $response->assertRedirect(route('landing'));
         $this->assertGuest();
         $this->assertDatabaseMissing('users', [
             'id' => $user->id,
@@ -45,7 +45,7 @@ class AccountDeletionTest extends TestCase
             ]);
 
         $response->assertStatus(303);
-        $response->assertRedirect(route('home'));
+        $response->assertRedirect(route('landing'));
     }
 
     public function test_guest_cannot_delete_an_account(): void

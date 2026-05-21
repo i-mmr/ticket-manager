@@ -1,29 +1,10 @@
 <script setup lang="ts">
-interface WorkspaceUser {
-  id: number
-  name: string
-  email: string
-}
-
-interface Team {
-  id: number
-  name: string
-  users: WorkspaceUser[]
-}
-
-interface Project {
-  id: number
-  name: string
-  status: string
-  tickets_count: number
-}
-
-interface Workspace {
-  id: number
-  name: string
-  teams: Team[]
-  projects: Project[]
-}
+import type { WorkspaceTree as Workspace } from '../types/workspace'
+import {
+  projectTicketSummary,
+  teamUserSummary,
+  workspaceSummary,
+} from '../types/workspace'
 
 defineProps<{
   workspaces: Workspace[]
@@ -44,7 +25,7 @@ const emit = defineEmits<{
           <span class="workspace-icon">W</span>
           <div>
             <h3>{{ workspace.name }}</h3>
-            <p>{{ workspace.projects.length }}プロジェクト / {{ workspace.teams.length }}チーム</p>
+            <p>{{ workspaceSummary(workspace) }}</p>
           </div>
         </div>
 
@@ -54,7 +35,7 @@ const emit = defineEmits<{
             <span class="tree-dot team-dot"></span>
             <div>
               <strong>{{ team.name }}</strong>
-              <p>{{ team.users.length }}ユーザー</p>
+              <p>{{ teamUserSummary(team) }}</p>
               <ul v-if="team.users.length" class="user-list">
                 <li v-for="user in team.users" :key="user.id">
                   {{ user.name }}
@@ -78,7 +59,7 @@ const emit = defineEmits<{
             <span class="tree-dot project-dot"></span>
             <div>
               <strong>{{ project.name }}</strong>
-              <p>{{ project.tickets_count }}チケット</p>
+              <p>{{ projectTicketSummary(project) }}</p>
             </div>
           </button>
         </div>

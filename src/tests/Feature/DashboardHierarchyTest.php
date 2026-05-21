@@ -32,6 +32,8 @@ class DashboardHierarchyTest extends TestCase
             'team_id' => $team->id,
             'name' => 'Support User',
         ]);
+        $team->users()->attach($user);
+        $project->teams()->attach($team);
 
         Ticket::query()->create([
             'project_id' => $project->id,

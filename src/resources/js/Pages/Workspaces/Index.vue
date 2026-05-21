@@ -5,11 +5,11 @@ import PageHeader from '../../Components/PageHeader.vue'
 </script>
 
 <template>
-  <Head title="プロジェクト" />
+  <Head title="ワークスペース" />
 
   <AppLayout active="projects">
     <section class="placeholder-panel">
-      <PageHeader title="プロジェクト" description="プロジェクト情報を確認できます。" />
+      <PageHeader title="ワークスペース" description="ワークスペース情報を確認できます。" />
     </section>
   </AppLayout>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
+import type { NavigationItem, NavigationKey } from '../navigation'
 
 interface CurrentUser {
   name: string | null
@@ -9,7 +10,8 @@ interface CurrentUser {
 
 const props = defineProps<{
   currentUser: CurrentUser
-  active: 'home' | 'projects' | 'tickets' | 'schedule'
+  active: NavigationKey
+  items: NavigationItem[]
 }>()
 
 const isMenuOpen = ref(false)
@@ -91,13 +93,13 @@ const deleteAccount = () => {
     <div class="brand-block">
       <p class="eyebrow">Ticket Manager</p>
       <nav class="top-nav" aria-label="上部メニュー">
-        <Link href="/home" :class="{ active: active === 'home' }">ホーム</Link>
-        <span class="menu-brace">{</span>
-        <Link href="/projects" :class="{ active: active === 'projects' }">プロジェクト</Link>
-        <span class="menu-separator">|</span>
-        <Link href="/tickets" :class="{ active: active === 'tickets' }">チケット</Link>
-        <span class="menu-separator">|</span>
-        <Link href="/schedule" :class="{ active: active === 'schedule' }">スケジュール</Link>
+        <template v-for="(item, index) in items" :key="item.key">
+          <Link :href="item.href" :class="{ active: active === item.key }">
+            {{ item.label }}
+          </Link>
+          <span v-if="index === 0" class="menu-brace">{</span>
+          <span v-else-if="index < items.length - 1" class="menu-separator">|</span>
+        </template>
         <span class="menu-brace">}</span>
       </nav>
     </div>

@@ -3,14 +3,17 @@
 use App\Http\Controllers\Auth\AccountController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TicketShowController;
+use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // 公開トップページ。未ログインユーザー向けの導線を表示する。
-Route::get('/', fn () => Inertia::render('Landing'))->name('home');
+Route::get('/', fn () => Inertia::render('Landing'))->name('landing');
 
 // 未ログインユーザー向けのログイン・仮登録・本登録フロー。
 Route::middleware('guest')->group(function () {
@@ -36,10 +39,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     // メール確認済みユーザーだけが利用できるダッシュボードとチケット操作。
     Route::middleware('verified')->group(function () {
-        Route::get('/dashboard', DashboardController::class)->name('dashboard');
-        Route::get('/home', [DashboardController::class, 'home'])->name('home.dashboard');
-        Route::get('/projects', [DashboardController::class, 'projects'])->name('projects.index');
-        Route::get('/schedule', [DashboardController::class, 'schedule'])->name('schedule.index');
+        Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
+        Route::get('/home', [HomeController::class, 'index'])->name('home');
+        Route::get('/workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
+        Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+        Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule.index');
         Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
         Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');
         Route::get('/tickets/{ticket}/edit', [TicketController::class, 'edit'])->name('tickets.edit');

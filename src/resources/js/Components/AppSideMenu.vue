@@ -1,35 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
 import WorkspaceTree from './WorkspaceTree.vue'
-
-interface WorkspaceUser {
-  id: number
-  name: string
-  email: string
-}
-
-interface Team {
-  id: number
-  name: string
-  users: WorkspaceUser[]
-}
-
-interface Project {
-  id: number
-  name: string
-  status: string
-  tickets_count: number
-}
-
-interface Workspace {
-  id: number
-  name: string
-  teams: Team[]
-  projects: Project[]
-}
+import type { NavigationItem, NavigationKey } from '../navigation'
+import type { WorkspaceTree as Workspace } from '../types/workspace'
 
 defineProps<{
-  active: 'home' | 'projects' | 'tickets' | 'schedule'
+  active: NavigationKey
+  items: NavigationItem[]
   workspaces?: Workspace[]
   activeProjectId?: number | null
   selectableProjects?: boolean
@@ -43,9 +20,14 @@ const emit = defineEmits<{
 <template>
   <aside class="side-nav" aria-label="左メニュー">
     <nav class="primary-nav" aria-label="主要メニュー">
-      <Link href="/home" :class="{ active: active === 'home' }">ホーム</Link>
-      <Link href="/tickets" :class="{ active: active === 'tickets' }">チケット</Link>
-      <Link href="/schedule" :class="{ active: active === 'schedule' }">スケジュール</Link>
+      <Link
+        v-for="item in items"
+        :key="item.key"
+        :href="item.href"
+        :class="{ active: active === item.key }"
+      >
+        {{ item.label }}
+      </Link>
     </nav>
 
     <WorkspaceTree

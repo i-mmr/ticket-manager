@@ -4,11 +4,6 @@ import AppLayout from '../Components/AppLayout.vue'
 import PageHeader from '../Components/PageHeader.vue'
 import type { TicketStatus } from '../types'
 
-interface CurrentUser {
-  name: string | null
-  email: string | null
-}
-
 interface HomeTicket {
   id: number
   project_name: string | null
@@ -17,36 +12,8 @@ interface HomeTicket {
   status: TicketStatus
 }
 
-interface WorkspaceUser {
-  id: number
-  name: string
-  email: string
-}
-
-interface Team {
-  id: number
-  name: string
-  users: WorkspaceUser[]
-}
-
-interface Project {
-  id: number
-  name: string
-  status: string
-  tickets_count: number
-}
-
-interface Workspace {
-  id: number
-  name: string
-  teams: Team[]
-  projects: Project[]
-}
-
 defineProps<{
-  currentUser: CurrentUser
   status?: string | null
-  workspaces: Workspace[]
   assignedTickets: HomeTicket[]
   createdTickets: HomeTicket[]
 }>()
@@ -61,7 +28,7 @@ const statusLabels: Record<TicketStatus, string> = {
 <template>
   <Head title="ホーム" />
 
-  <AppLayout :current-user="currentUser" active="home" :workspaces="workspaces">
+  <AppLayout active="home">
     <div class="home-main">
       <section class="hero-section">
         <PageHeader title="ホーム" description="担当中のチケットと、自分が登録したチケットを確認できます。">

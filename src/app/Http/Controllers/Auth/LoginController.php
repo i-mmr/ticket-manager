@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
+/**
+ * ログイン画面、ログイン実行、ログアウトを担当する。
+ *
+ * `/login` と `/logout` から使う。
+ * メールアドレスハッシュでユーザーを探し、パスワードを検証してセッションを再生成する。
+ */
 class LoginController extends Controller
 {
     public function create()
@@ -42,7 +48,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('home.dashboard'));
+        return redirect()->intended(route('home'));
     }
 
     public function destroy(Request $request)

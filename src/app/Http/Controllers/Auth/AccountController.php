@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * ログイン済みユーザーのパスワード変更と退会処理を担当する。
+ *
+ * `/account/password` と `/account` から使う。
+ * 退会時は退会理由を保存してからログアウトし、ユーザーを削除する。
+ */
 class AccountController extends Controller
 {
     public function updatePassword(Request $request)
@@ -53,6 +59,6 @@ class AccountController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return to_route('home')->with('status', 'account-deleted');
+        return to_route('landing')->with('status', 'account-deleted');
     }
 }

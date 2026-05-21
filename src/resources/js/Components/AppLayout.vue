@@ -1,49 +1,39 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import AppNavigation from './AppNavigation.vue'
 import AppSideMenu from './AppSideMenu.vue'
+import { headerNavigationItems, sideNavigationItems } from '../navigation'
+import type { NavigationKey } from '../navigation'
+import type { WorkspaceTree as Workspace } from '../types/workspace'
 
 interface CurrentUser {
   name: string | null
   email: string | null
 }
 
-interface WorkspaceUser {
-  id: number
-  name: string
-  email: string
-}
-
-interface Team {
-  id: number
-  name: string
-  users: WorkspaceUser[]
-}
-
-interface Project {
-  id: number
-  name: string
-  status: string
-  tickets_count: number
-}
-
-interface Workspace {
-  id: number
-  name: string
-  teams: Team[]
-  projects: Project[]
+interface SharedProps extends Record<string, unknown> {
+  currentUser?: CurrentUser | null
+  workspaces?: Workspace[]
 }
 
 withDefaults(defineProps<{
-  currentUser: CurrentUser
-  active: 'home' | 'projects' | 'tickets' | 'schedule'
-  workspaces?: Workspace[]
+  active: NavigationKey
   activeProjectId?: number | null
   selectableProjects?: boolean
 }>(), {
-  workspaces: undefined,
   activeProjectId: null,
   selectableProjects: false,
 })
+
+const page = usePage<SharedProps>()
+
+const currentUser = computed<CurrentUser>(() => page.props.currentUser ?? {
+  name: null,
+  email: null,
+})
+
+const workspaces = computed<Workspace[]>(() => page.props.workspaces ?? [])
 
 const emit = defineEmits<{
   selectProject: [projectId: number]
@@ -52,11 +42,12 @@ const emit = defineEmits<{
 
 <template>
   <div class="app-page">
-    <AppNavigation :current-user="currentUser" :active="active" />
+    <AppNavigation :current-user="currentUser" :active="active" :items="headerNavigationItems" />
 
     <div class="app-layout">
       <AppSideMenu
         :active="active"
+        :items="sideNavigationItems"
         :workspaces="workspaces"
         :active-project-id="activeProjectId"
         :selectable-projects="selectableProjects"
